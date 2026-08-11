@@ -1,20 +1,35 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { LogOut, BookOpen, ClipboardList, Award } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+interface TeacherData {
+  id: string;
+  name: string;
+  cnic: string;
+  phone?: string;
+  assignments?: any[];
+}
 
 export default function TeacherDashboard() {
-  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+  const [data, setData] = useState<TeacherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"overview" | "classes" | "attendance" | "grading">("overview");
 
   useEffect(() => {
-    async function fetchMe() {
+    async function fetchPortalData() {
       try {
         const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+        const json = await res.json();
+        if (json.authenticated && json.user?.role?.toUpperCase() === "TEACHER") {
+          setData(json.user);
+        } else {
+          router.push("/login");
         }
       } catch (e) {
         console.error(e);
@@ -22,104 +37,187 @@ export default function TeacherDashboard() {
         setLoading(false);
       }
     }
-    fetchMe();
-  }, []);
+    fetchPortalData();
+  }, [router]);
 
-  const assignments = user?.teacherAssignments || [];
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm font-sans">
+        Loading Faculty Portal...
+      </div>
+    );
+  }
+
+  const teacherName = data?.name || "Faculty Member";
+  const assignedClassesCount = data?.assignments?.length || 0;
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 flex font-sans">
-      {/* Sidebar */}
-      <aside className="w-72 bg-[#090d16]/90 border-r border-slate-800/80 p-6 flex flex-col justify-between hidden lg:flex backdrop-blur-xl">
-        <div className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-              T
-            </div>
-            <div>
-              <div className="font-extrabold text-white text-base tracking-tight">Greenhill LMS</div>
-              <div className="text-[11px] text-indigo-400 font-semibold uppercase">Faculty Portal</div>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans w-full max-w-full overflow-x-hidden pb-24">
+      {/* Faculty Top Bar */}
+      <header className="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-base shrink-0 shadow-lg shadow-amber-500/30">
+            T
           </div>
-
-          <nav className="space-y-2 text-xs font-semibold">
-            <Link href="/dashboard/teacher" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 shadow-sm transition">
-              <Award className="w-4 h-4" /> Faculty Workload Scope
-            </Link>
-            <Link href="/dashboard/teacher/attendance" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
-              <ClipboardList className="w-4 h-4" /> Daily Attendance
-            </Link>
-            <Link href="/dashboard/teacher/grades" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
-              <Award className="w-4 h-4" /> Gradebook & Reports
-            </Link>
-          </nav>
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-white truncate">Faculty Portal</h1>
+            <p className="text-[11px] text-amber-400 font-semibold truncate">Greenhill Academic</p>
+          </div>
         </div>
 
-        <div className="pt-6 border-t border-slate-800/80">
-          <Link href="/login" className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition">
-            <LogOut className="w-4 h-4" /> Exit Faculty Portal
-          </Link>
-        </div>
-      </aside>
+        <button
+          onClick={handleLogout}
+          className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold shrink-0 active:scale-95 transition-all"
+        >
+          Exit
+        </button>
+      </header>
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col">
-        <header className="h-20 border-b border-slate-800/80 bg-[#090d16]/80 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center gap-3">
-            <span className="px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-wider">
-              Assigned Classes: {assignments.length} Sections
+      {/* Main Responsive Body */}
+      <main className="w-full max-w-xl mx-auto px-3 py-4 space-y-4 box-border">
+        {/* Profile Card */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 w-full box-border">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Welcome Back
             </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs font-bold text-white">{loading ? "Loading..." : user?.name}</div>
-              <div className="text-[10px] text-slate-400 font-mono">CNIC: {user?.cnic}</div>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 border border-white/10 flex items-center justify-center font-bold text-sm text-white shadow-md">
-              FC
-            </div>
-          </div>
-        </header>
-
-        <main className="p-8 space-y-8 max-w-7xl w-full mx-auto">
-          <div className="bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 space-y-4 shadow-xl">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-indigo-400" /> Assigned Teaching Workload
+            <h2 className="text-xl font-black text-white tracking-tight mt-0.5 break-words">
+              {teacherName}
             </h2>
-            <p className="text-xs text-slate-400">
-              You are restricted strictly to taking attendance and entering grades for your assigned class/subject combinations below.
+            <p className="text-xs text-slate-400 font-mono mt-1 break-all">
+              CNIC: {data?.cnic || "N/A"}
             </p>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              {assignments.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-xs col-span-3 border border-dashed border-slate-800 rounded-xl">
-                  No classes assigned by Principal yet. Contact Principal Office to allocate subject workload.
-                </div>
-              ) : (
-                assignments.map((a: any) => (
-                  <div key={a.id} className="bg-[#030712] border border-slate-800 rounded-xl p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-black text-white">{a.class?.name} - {a.class?.section}</span>
-                      <span className="px-2.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold">
-                        {a.subject}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 pt-2">
-                      <Link href="/dashboard/teacher/attendance" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg text-center transition">
-                        Take Attendance
-                      </Link>
-                      <Link href="/dashboard/teacher/grades" className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold rounded-lg text-center transition">
-                        Enter Marks
-                      </Link>
-                    </div>
-                  </div>
-                ))
-              )}
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-2 gap-2 w-full pt-1">
+            <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                Assigned Classes
+              </span>
+              <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 inline-block">
+                {assignedClassesCount} Classes
+              </span>
+            </div>
+
+            <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                Pending Grades
+              </span>
+              <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 inline-block">
+                All Cleared
+              </span>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+
+        {/* Dynamic Tab Content */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 w-full box-border min-h-[260px]">
+          {activeTab === "overview" && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>📊</span> Today's Schedule
+              </h3>
+              <p className="text-xs text-slate-400">Your upcoming classes and tasks.</p>
+              <div className="p-5 rounded-lg bg-slate-950 border border-dashed border-slate-800 text-center text-slate-500 text-xs mt-3">
+                No classes scheduled for today yet.
+              </div>
+            </div>
+          )}
+
+          {activeTab === "classes" && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>🏫</span> My Classes
+              </h3>
+              <p className="text-xs text-slate-400">Classes assigned to you by the Principal.</p>
+              <div className="p-5 rounded-lg bg-slate-950 border border-dashed border-slate-800 text-center text-slate-500 text-xs mt-3">
+                {assignedClassesCount === 0 
+                  ? "You have not been assigned to any classes." 
+                  : "Assigned classes will appear here."}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "attendance" && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>📅</span> Mark Attendance
+              </h3>
+              <p className="text-xs text-slate-400">Select a class to mark daily attendance.</p>
+              
+              <select className="w-full mt-3 p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500 box-border">
+                <option value="">-- Select Class --</option>
+                <option value="pg_a" disabled>PG - Section A (Not Assigned)</option>
+              </select>
+              <button className="w-full mt-2 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-all shadow-md shadow-amber-600/20 disabled:opacity-50">
+                Load Roster
+              </button>
+            </div>
+          )}
+
+          {activeTab === "grading" && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>📝</span> Grading & Exams
+              </h3>
+              <p className="text-xs text-slate-400">Enter marks and update student transcripts.</p>
+              <div className="p-5 rounded-lg bg-slate-950 border border-dashed border-slate-800 text-center text-slate-500 text-xs mt-3">
+                Select a class from the dropdown to input term grades.
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Teacher Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-2 py-1.5 flex items-center justify-around z-50 w-full max-w-full box-border">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-lg transition-all min-w-[70px] ${
+            activeTab === "overview" ? "text-amber-400 font-bold bg-amber-500/10" : "text-slate-400"
+          }`}
+        >
+          <span className="text-base">📊</span>
+          <span className="text-[10px] mt-0.5 leading-none">Overview</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("classes")}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-lg transition-all min-w-[70px] ${
+            activeTab === "classes" ? "text-amber-400 font-bold bg-amber-500/10" : "text-slate-400"
+          }`}
+        >
+          <span className="text-base">🏫</span>
+          <span className="text-[10px] mt-0.5 leading-none">Classes</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("attendance")}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-lg transition-all min-w-[70px] ${
+            activeTab === "attendance" ? "text-amber-400 font-bold bg-amber-500/10" : "text-slate-400"
+          }`}
+        >
+          <span className="text-base">📅</span>
+          <span className="text-[10px] mt-0.5 leading-none">Roll Call</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("grading")}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-lg transition-all min-w-[70px] ${
+            activeTab === "grading" ? "text-amber-400 font-bold bg-amber-500/10" : "text-slate-400"
+          }`}
+        >
+          <span className="text-base">📝</span>
+          <span className="text-[10px] mt-0.5 leading-none">Grades</span>
+        </button>
+      </nav>
     </div>
   );
 }
