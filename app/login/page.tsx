@@ -1,12 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/dashboard/principal";
 
   const [cnic, setCnic] = useState("");
   const [error, setError] = useState("");
@@ -30,7 +28,21 @@ function LoginForm() {
         throw new Error(data.error || `HTTP ${res.status}: Failed to authenticate`);
       }
 
-      router.push(redirect);
+      // Dynamic Role-Based Routing
+      const role = data.user?.role?.toUpperCase();
+
+      if (role === "STUDENT") {
+        router.push("/dashboard/student");
+      } else if (role === "TEACHER") {
+        router.push("/dashboard/teacher");
+      } else if (role === "PARENT") {
+        router.push("/dashboard/parent");
+      } else if (role === "PRINCIPAL") {
+        router.push("/dashboard/principal");
+      } else {
+        router.push("/dashboard");
+      }
+
       router.refresh();
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
