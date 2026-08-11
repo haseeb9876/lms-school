@@ -1,39 +1,51 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 
-export async function POST(req: Request) {
+const prisma = new PrismaClient();
+
+export async function GET() {
   try {
-    const { studentId, subjectId, examType, marks, totalMarks } = await req.json();
+    const results = await prisma.examResult.findMany({
+      include: {
+        student: {
+          include: {
+            user: { select: { name: true, cnic: true } },
+            class: { select: { name: true, section: true } },
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+    });
 
-    // Ensure dummy subject if not provided
-    let subId = subjectId;
-    if (!subId) {
-      let defaultClass = await prisma.classGrade.findFirst();
-      if (!defaultClass) {
-        defaultClass = await prisma.classGrade.create({ data: { name: "General Class" } });
-      }
-      
-      let defaultSub = await prisma.subject.findFirst({ where: { classGradeId: defaultClass.id } });
-      if (!defaultSub) {
-        defaultSub = await prisma.subject.create({
-          data: { name: "General Subjects", code: "GEN101", classGradeId: defaultClass.id },
-        });
-      }
-      subId = defaultSub.id;
+    return NextResponse.json({ results });
+  } catch (error) {
+    console.error("GET /api/teacher/grades error:", error);
+    return NextResponse.json({ error: "Failed to fetch exam results" }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { studentId, subject, term, marksObtained, totalMarks } = body;
+
+    if (!studentId || !subject || !term || marksObtained === undefined) {
+      return NextResponse.json({ error: "Missing required grade entry fields" }, { status: 400 });
     }
 
-    const grade = await prisma.grade.create({
+    const result = await prisma.examResult.create({
       data: {
         studentId,
-        subjectId: subId,
-        examType,
-        marks,
-        totalMarks: totalMarks || 100,
+        subject,
+        term,
+        marksObtained: parseFloat(marksObtained),
+        totalMarks: totalMarks ? parseFloat(totalMarks) : 100,
       },
     });
 
-    return NextResponse.json(grade);
-  } catch (err) {
-    return NextResponse.json({ message: "Failed to create grade entry" }, { status: 500 });
+    return NextResponse.json({ success: true, result });
+  } catch (error) {
+    console.error("POST /api/teacher/grades error:", error);
+    return NextResponse.json({ error: "Failed to save grade entry" }, { status: 500 });
   }
 }

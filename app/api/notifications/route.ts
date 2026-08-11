@@ -1,39 +1,17 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const logs = await prisma.notificationLog.findMany({
-      orderBy: { sentAt: 'desc' },
+    const logs = await prisma.auditLog.findMany({
+      orderBy: { timestamp: "desc" },
       take: 20,
     });
-    return NextResponse.json({ success: true, logs });
+    return NextResponse.json({ logs });
   } catch (error) {
-    console.error('Notification GET Error:', error);
-    return NextResponse.json({ success: false, message: 'Failed to fetch logs' }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const { type, recipient, phone, message } = await req.json();
-
-    // Log the broadcast in DB
-    const log = await prisma.notificationLog.create({
-      data: {
-        recipient,
-        phone,
-        type,
-        message,
-        status: 'SENT',
-      },
-    });
-
-    return NextResponse.json({ success: true, log });
-  } catch (error) {
-    console.error('Notification POST Error:', error);
-    return NextResponse.json({ success: false, message: 'Failed to trigger notification' }, { status: 500 });
+    console.error("GET /api/notifications error:", error);
+    return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
   }
 }

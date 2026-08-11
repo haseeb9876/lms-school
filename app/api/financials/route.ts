@@ -1,56 +1,51 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const records = await prisma.feeRecord.findMany({
+    const invoices = await prisma.feeInvoice.findMany({
       include: {
         student: {
-          select: { name: true, cnic: true, classScope: true, fatherCnic: true },
+          include: {
+            user: { select: { name: true, cnic: true } },
+            class: { select: { name: true, section: true } },
+          },
         },
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(records);
-  } catch (err) {
-    return NextResponse.json({ message: "Failed to fetch fee records" }, { status: 500 });
+
+    return NextResponse.json({ records: invoices });
+  } catch (error) {
+    console.error("GET /api/financials error:", error);
+    return NextResponse.json({ error: "Failed to fetch financial records" }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { studentId, month, amount, dueDate } = await req.json();
+    const body = await request.json();
+    const { studentId, title, amount, dueDate } = body;
 
-    const record = await prisma.feeRecord.create({
+    if (!studentId || !title || !amount) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const invoice = await prisma.feeInvoice.create({
       data: {
         studentId,
-        month,
+        title,
         amount: parseFloat(amount),
-        dueDate,
+        dueDate: dueDate ? new Date(dueDate) : new Date(),
         status: "PENDING",
       },
     });
 
-    return NextResponse.json(record);
-  } catch (err) {
-    return NextResponse.json({ message: "Failed to generate fee invoice" }, { status: 500 });
-  }
-}
-
-export async function PATCH(req: Request) {
-  try {
-    const { recordId, status } = await req.json();
-
-    const updated = await prisma.feeRecord.update({
-      where: { id: recordId },
-      data: {
-        status,
-        paidDate: status === "PAID" ? new Date().toISOString().split("T")[0] : null,
-      },
-    });
-
-    return NextResponse.json(updated);
-  } catch (err) {
-    return NextResponse.json({ message: "Failed to update payment status" }, { status: 500 });
+    return NextResponse.json({ success: true, invoice });
+  } catch (error) {
+    console.error("POST /api/financials error:", error);
+    return NextResponse.json({ error: "Failed to issue invoice" }, { status: 500 });
   }
 }
