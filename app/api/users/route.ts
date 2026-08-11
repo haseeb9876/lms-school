@@ -44,6 +44,7 @@ export async function POST(request: Request) {
     }
 
     const cleanCnic = cnic.trim();
+    const userRole = role.toUpperCase();
 
     const existingUser = await prisma.user.findUnique({
       where: { cnic: cleanCnic },
@@ -60,22 +61,30 @@ export async function POST(request: Request) {
       data: {
         cnic: cleanCnic,
         name,
-        role: role.toUpperCase(),
+        role: userRole,
         phone,
-        ...(role.toUpperCase() === "STUDENT" && {
+        ...(userRole === "STUDENT" && {
           studentProfile: {
             create: {
-              fatherCnic,
+              fatherCnic: fatherCnic || null,
               classId: classId || null,
             },
           },
         }),
       },
-      include: {
-        studentProfile: true,
-        assignments: true,
-      },
     });
+
+    // If Role is TEACHER and a class was selected, assign the class
+    if (userRole === "TEACHER" && classId) {
+      await prisma.assignment.create({
+        data: {
+          title: `Faculty Class Assignment`,
+          teacherId: newUser.id,
+          classId: classId,
+          dueDate: new Date(),
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, user: newUser });
   } catch (error: any) {
