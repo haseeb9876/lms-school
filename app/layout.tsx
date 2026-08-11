@@ -13,7 +13,6 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({
@@ -23,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth">
-      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased overflow-x-hidden min-h-screen w-full`}>
+      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased overflow-x-hidden min-h-screen w-full max-w-full m-0 p-0`}>
         {children}
       </body>
     </html>
