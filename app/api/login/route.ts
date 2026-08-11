@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +12,7 @@ export async function POST(request: Request) {
 
     const cleanCnic = cnic.trim();
 
-    // Query user by CNIC or fatherCnic relation
+    // Query user by CNIC directly
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -25,7 +23,7 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid CNIC credentials." }, { status: 401 });
+      return NextResponse.json({ error: "Invalid CNIC credentials. Record not found." }, { status: 401 });
     }
 
     const sessionData = JSON.stringify({
@@ -61,6 +59,6 @@ export async function POST(request: Request) {
     return response;
   } catch (error: any) {
     console.error("POST /api/login error:", error);
-    return NextResponse.json({ error: error.message || "Authentication failed." }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Database connection error." }, { status: 500 });
   }
 }
