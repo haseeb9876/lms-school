@@ -1,15 +1,24 @@
-import './globals.css';
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'School LMS | Secure School Management Platform',
-  description: 'Professional school management and learning platform for Pakistan schools with secure branding, role-based access, and modern school workflows.'
+  title: "Greenhill LMS - Enterprise Academic Portal",
+  description: "Complete Institutional ERP Oversight for Modern Academic Excellence",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en">
-      <body style={{ minHeight: '100vh', background: '#f4f7fb' }}>{children}</body>
+    <html lang="en" className="dark scroll-smooth">
+      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased overflow-x-hidden min-h-screen`}>
+        {children}
+      </body>
     </html>
   );
 }
