@@ -28,7 +28,10 @@ export default function UserManagementPage() {
         const res = await fetch("/api/classes");
         if (res.ok) {
           const json = await res.json();
-          setClasses(json.classes || []);
+          if (json.classes && json.classes.length > 0) {
+            setClasses(json.classes);
+            setClassId(json.classes[0].id); // Auto-select first class
+          }
         }
       } catch (e) {
         console.error("Failed to load classes", e);
@@ -66,7 +69,6 @@ export default function UserManagementPage() {
       setCnic("");
       setPhone("");
       setFatherCnic("");
-      setClassId("");
     } catch (err: any) {
       setMsg(`Error: ${err.message}`);
     } finally {
@@ -95,7 +97,7 @@ export default function UserManagementPage() {
           </p>
         </div>
 
-        {/* Registration Card */}
+        {/* Registration Form Card */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">
             REGISTER NEW ACCOUNT
@@ -137,7 +139,7 @@ export default function UserManagementPage() {
                 required
                 value={cnic}
                 onChange={(e) => setCnic(e.target.value)}
-                placeholder="CNIC Number"
+                placeholder="0000-0000000-0"
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-blue-500"
               />
             </div>
@@ -165,7 +167,7 @@ export default function UserManagementPage() {
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="03001234567"
+                placeholder="03111111111"
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-blue-500"
               />
             </div>
@@ -179,12 +181,15 @@ export default function UserManagementPage() {
                 onChange={(e) => setClassId(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded text-sm text-white focus:outline-none focus:border-blue-500"
               >
-                <option value="">-- Select Class --</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name} {cls.section ? `- Section ${cls.section}` : ""}
-                  </option>
-                ))}
+                {classes.length === 0 ? (
+                  <option value="">Loading classes...</option>
+                ) : (
+                  classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} {cls.section ? `- Section ${cls.section}` : ""}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
