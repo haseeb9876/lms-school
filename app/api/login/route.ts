@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { validateCredentials, createSessionCookieValue } from "@/app/lib/auth";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -10,13 +12,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "CNIC is required." }, { status: 400 });
     }
 
-    const user = await validateCredentials(cnic);
+    const cleanCnic = cnic.trim();
+
+    // Query user by CNIC or fatherCnic relation
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { cnic: cleanCnic },
+          { studentProfile: { fatherCnic: cleanCnic } },
+        ],
+      },
+    });
 
     if (!user) {
       return NextResponse.json({ error: "Invalid CNIC credentials." }, { status: 401 });
     }
 
-    const sessionData = createSessionCookieValue({
+    const sessionData = JSON.stringify({
       id: user.id,
       role: user.role,
       name: user.name,
@@ -47,8 +59,8 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("POST /api/login error:", error);
-    return NextResponse.json({ error: "Authentication failed." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Authentication failed." }, { status: 500 });
   }
 }
