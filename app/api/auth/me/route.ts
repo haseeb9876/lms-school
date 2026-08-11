@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -10,73 +8,39 @@ export async function GET() {
     const sessionToken = cookieStore.get("session_token")?.value;
 
     if (!sessionToken) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    // 1. Fetch User Record with Student Profile and Class Subject Teachers
     const user = await prisma.user.findUnique({
       where: { id: sessionToken },
       include: {
-        teacherAssignments: {
+        assignments: {
           include: { class: { select: { id: true, name: true, section: true } } },
         },
         studentProfile: {
-          include: {
-            class: {
-              include: {
-                assignments: {
-                  include: {
-                    teacher: { select: { id: true, name: true, phone: true } },
-                  },
-                },
-              },
-            },
-            feeInvoices: { orderBy: { createdAt: "desc" } },
-            examResults: { orderBy: { date: "desc" } },
-            attendances: { orderBy: { date: "desc" } },
-          },
+          include: { class: { select: { id: true, name: true, section: true } } },
         },
       },
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    // 2. Fetch Desk Tickets sent by this user
-    const tickets = await prisma.deskTicket.findMany({
-      where: { parentId: user.id },
-      orderBy: { createdAt: "desc" },
+    return NextResponse.json({
+      authenticated: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        cnic: user.cnic,
+        role: user.role,
+        phone: user.phone,
+        studentProfile: user.studentProfile,
+        assignments: user.assignments,
+      },
     });
-
-    // 3. Fetch Sibling Children if registered under same Father CNIC
-    let children: any[] = [];
-    const lookupFatherCnic = user.studentProfile?.fatherCnic || user.cnic;
-
-    if (lookupFatherCnic) {
-      children = await prisma.studentProfile.findMany({
-        where: { fatherCnic: lookupFatherCnic },
-        include: {
-          user: { select: { id: true, name: true, cnic: true } },
-          class: {
-            include: {
-              assignments: {
-                include: {
-                  teacher: { select: { id: true, name: true, phone: true } },
-                },
-              },
-            },
-          },
-          feeInvoices: { orderBy: { createdAt: "desc" } },
-          examResults: { orderBy: { date: "desc" } },
-          attendances: { orderBy: { date: "desc" } },
-        },
-      });
-    }
-
-    return NextResponse.json({ user, children, tickets });
-  } catch (error) {
+  } catch (error: any) {
     console.error("GET /api/auth/me error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ authenticated: false, error: "Authentication check failed" }, { status: 500 });
   }
 }
