@@ -1,0 +1,118 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  cnic          String         @unique
+  password      String
+  name          String
+  role          String         @default("STUDENT") // PRINCIPAL, TEACHER, STUDENT, PARENT
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  teacherAssignments TeacherAssignment[]
+  studentProfile     StudentProfile?
+  deskTickets        DeskTicket[]  @relation("ParentTickets")
+  auditLogs          AuditLog[]
+
+  @@index([cnic])
+}
+
+model TeacherAssignment {
+  id        String   @id @default(uuid())
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   String   // e.g., "Mathematics", "Physics", "English"
+
+  @@unique([teacherId, classId, subject])
+}
+
+model StudentProfile {
+  id             String        @id @default(uuid())
+  userId         String        @unique
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fatherCnic     String
+  fatherName     String
+  rollNumber     String        @unique
+  classId        String
+  class          Class         @relation(fields: [classId], references: [id])
+  
+  attendances    Attendance[]
+  examResults    ExamResult[]
+  feeInvoices    FeeInvoice[]
+
+  @@index([fatherCnic])
+  @@index([classId])
+}
+
+model Class {
+  id          String              @id @default(uuid())
+  name        String
+  section     String
+  assignments TeacherAssignment[]
+  students    StudentProfile[]
+
+  @@unique([name, section])
+}
+
+model Attendance {
+  id          String           @id @default(uuid())
+  studentId   String
+  student     StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date        DateTime
+  status      String           @default("PRESENT") // PRESENT, ABSENT, LATE, LEAVE
+
+  @@unique([studentId, date])
+}
+
+model ExamResult {
+  id            String         @id @default(uuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject       String
+  term          String
+  marksObtained Float
+  totalMarks    Float
+  date          DateTime       @default(now())
+}
+
+model FeeInvoice {
+  id          String        @id @default(uuid())
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title       String
+  amount      Float
+  dueDate     DateTime
+  paidAmount  Float         @default(0)
+  status      String        @default("PENDING") // PENDING, PARTIAL, PAID, OVERDUE
+  createdAt   DateTime      @default(now())
+}
+
+model DeskTicket {
+  id          String       @id @default(uuid())
+  parentId    String
+  parent      User         @relation("ParentTickets", fields: [parentId], references: [id])
+  subject     String
+  message     String
+  status      String       @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  details   String
+  timestamp DateTime @default(now())
+}
