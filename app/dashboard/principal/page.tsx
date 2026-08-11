@@ -1,200 +1,351 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { 
-  Users, DollarSign, Lock, Award, TrendingUp, UserPlus, 
-  FileText, ShieldCheck, ArrowUpRight, CheckCircle2, Clock, LogOut 
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+interface UserRecord {
+  id: string;
+  name: string;
+  cnic: string;
+  role: string;
+  phone?: string;
+  createdAt: string;
+}
 
 export default function PrincipalDashboard() {
-  const [stats, setStats] = useState({
-    totalStudents: 1240,
-    monthlyRevenue: "4.2M",
-    pendingTickets: 3,
-    activeTeachers: 48
-  });
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "register" | "fees">("overview");
+
+  // Registration Form State
+  const [name, setName] = useState("");
+  const [cnic, setCnic] = useState("");
+  const [role, setRole] = useState("STUDENT");
+  const [phone, setPhone] = useState("");
+  const [regMsg, setRegMsg] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+
+  useEffect(() => {
+    async function initDashboard() {
+      try {
+        const authRes = await fetch("/api/auth/me");
+        if (!authRes.ok) {
+          router.push("/login");
+          return;
+        }
+        const authJson = await authRes.json();
+        if (!authJson.authenticated || authJson.user?.role?.toUpperCase() !== "PRINCIPAL") {
+          router.push("/login");
+          return;
+        }
+
+        // Fetch User Roster
+        const usersRes = await fetch("/api/users");
+        if (usersRes.ok) {
+          const usersJson = await usersRes.json();
+          setUsers(usersJson.users || []);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    initDashboard();
+  }, [router]);
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  };
+
+  const handleRegisterUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegMsg("");
+    setRegLoading(true);
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, cnic, role, phone }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to create user");
+      }
+
+      setRegMsg("User created successfully!");
+      setName("");
+      setCnic("");
+      setPhone("");
+
+      // Refresh list
+      const uRes = await fetch("/api/users");
+      if (uRes.ok) {
+        const uJson = await uRes.json();
+        setUsers(uJson.users || []);
+      }
+    } catch (err: any) {
+      setRegMsg(`Error: ${err.message}`);
+    } finally {
+      setRegLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm font-sans">
+        Loading Principal Executive Portal...
+      </div>
+    );
+  }
+
+  const totalStudents = users.filter((u) => u.role === "STUDENT").length;
+  const totalTeachers = users.filter((u) => u.role === "TEACHER").length;
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 flex font-sans selection:bg-blue-500 selection:text-white">
-      {/* Sidebar */}
-      <aside className="w-72 bg-[#090d16]/90 border-r border-slate-800/80 p-6 flex flex-col justify-between hidden lg:flex backdrop-blur-xl">
-        <div className="space-y-8">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-500 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/20">
-              G
-            </div>
-            <div>
-              <div className="font-extrabold text-white text-base tracking-tight">Greenhill LMS</div>
-              <div className="text-[11px] text-blue-400 font-semibold tracking-wider uppercase flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Executive Suite
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans w-full max-w-full overflow-x-hidden pb-24">
+      {/* Executive Top Bar */}
+      <header className="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-base shrink-0 shadow-lg shadow-blue-600/30">
+            P
           </div>
-
-          <nav className="space-y-2 text-xs font-semibold">
-            <Link href="/dashboard/principal" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-400 shadow-sm transition">
-              <TrendingUp className="w-4 h-4" /> Command Overview
-            </Link>
-            <Link href="/dashboard/principal/users" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
-              <Users className="w-4 h-4" /> User Directory & Registration
-            </Link>
-            <Link href="/dashboard/principal/fees" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
-              <DollarSign className="w-4 h-4" /> Fee Ledgers & Challans
-            </Link>
-            <Link href="/dashboard/principal/desk" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/60 hover:text-white transition">
-              <Lock className="w-4 h-4" /> Confidential Desk
-            </Link>
-          </nav>
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-white truncate">Principal Suite</h1>
+            <p className="text-[11px] text-blue-400 font-semibold truncate">Greenhill Executive</p>
+          </div>
         </div>
 
-        <div className="pt-6 border-t border-slate-800/80">
-          <Link href="/login" className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition">
-            <LogOut className="w-4 h-4" /> Exit Executive Suite
-          </Link>
-        </div>
-      </aside>
+        <button
+          onClick={handleLogout}
+          className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold shrink-0 active:scale-95 transition-all"
+        >
+          Exit
+        </button>
+      </header>
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="h-20 border-b border-slate-800/80 bg-[#090d16]/80 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center gap-4">
-            <span className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
-              Principal Office Desk
+      {/* Main Responsive Body */}
+      <main className="w-full max-w-xl mx-auto px-3 py-4 space-y-4 box-border">
+        {/* Executive Quick Metrics */}
+        <div className="grid grid-cols-2 gap-2 w-full">
+          <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+              Total Enrolled
             </span>
-            <span className="text-slate-600">|</span>
-            <span className="text-slate-400 text-xs font-mono">CNIC: 1111111111111</span>
+            <div className="text-lg font-black text-white">{totalStudents} Students</div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs font-bold text-white">Dr. Shahab Ud Din</div>
-              <div className="text-[10px] text-emerald-400 font-semibold flex items-center justify-end gap-1">
-                <CheckCircle2 className="w-3 h-3" /> System Operational
-              </div>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 border border-white/10 flex items-center justify-center font-bold text-sm text-white shadow-md">
-              PO
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="p-8 space-y-8 max-w-7xl w-full mx-auto">
-          {/* Hero Banner */}
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-indigo-950/60 to-slate-950 border border-blue-500/20 p-8 shadow-2xl">
-            <div className="absolute -right-12 -top-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="relative z-10 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-medium">
-                Enterprise School ERP Active
-              </div>
-              <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
-                Institutional Operations & Oversight Hub
-              </h1>
-              <p className="text-slate-300 text-xs lg:text-sm max-w-2xl leading-relaxed">
-                Real-time financial ledgers, direct confidential parent channels, section roll call metrics, and teacher gradebook validation.
-              </p>
-            </div>
+          <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+              Active Faculty
+            </span>
+            <div className="text-lg font-black text-blue-400">{totalTeachers} Teachers</div>
           </div>
 
-          {/* Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 space-y-3 hover:border-blue-500/40 transition shadow-xl group">
+          <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+              Daily Attendance
+            </span>
+            <div className="text-lg font-black text-emerald-400">98.2%</div>
+          </div>
+
+          <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
+            <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+              Revenue Stream
+            </span>
+            <div className="text-lg font-black text-amber-400">PKR 4.2M</div>
+          </div>
+        </div>
+
+        {/* Tab Content Box */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 w-full box-border min-h-[280px]">
+          {/* OVERVIEW / ROSTER TAB */}
+          {activeTab === "overview" && (
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">Total Enrolled</span>
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
-                  <Users className="w-4 h-4" />
-                </div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <span>🏛️</span> Institutional Roster
+                </h3>
+                <span className="text-[11px] font-mono text-slate-400">{users.length} Records</span>
               </div>
-              <div className="text-3xl font-black text-white font-mono">{stats.totalStudents}</div>
-              <p className="text-[11px] text-slate-500">14 Active Class Sections</p>
+
+              <div className="space-y-2 mt-2">
+                {users.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-6">No users found.</p>
+                ) : (
+                  users.map((u) => (
+                    <div
+                      key={u.id}
+                      className="p-3 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-white truncate">{u.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-mono truncate">CNIC: {u.cnic}</p>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 ${
+                          u.role === "PRINCIPAL"
+                            ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                            : u.role === "TEACHER"
+                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        }`}
+                      >
+                        {u.role}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+          )}
 
-            <div className="bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 space-y-3 hover:border-emerald-500/40 transition shadow-xl group">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">Monthly Billing</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                  <DollarSign className="w-4 h-4" />
+          {/* REGISTER USER TAB */}
+          {activeTab === "register" && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <span>➕</span> Register New User / Student
+              </h3>
+
+              {regMsg && (
+                <div
+                  className={`p-2.5 rounded text-xs border ${
+                    regMsg.startsWith("Error")
+                      ? "bg-red-950 text-red-200 border-red-800"
+                      : "bg-emerald-950 text-emerald-200 border-emerald-800"
+                  }`}
+                >
+                  {regMsg}
                 </div>
-              </div>
-              <div className="text-3xl font-black text-emerald-400 font-mono">PKR {stats.monthlyRevenue}</div>
-              <p className="text-[11px] text-slate-500">88% Ledger Clearance</p>
-            </div>
+              )}
 
-            <div className="bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 space-y-3 hover:border-amber-500/40 transition shadow-xl group">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">Parent Escalations</span>
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-                  <Lock className="w-4 h-4" />
+              <form onSubmit={handleRegisterUser} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Muhammad Ahmad"
+                    className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 box-border"
+                  />
                 </div>
-              </div>
-              <div className="text-3xl font-black text-amber-400 font-mono">{stats.pendingTickets} Active</div>
-              <p className="text-[11px] text-slate-500">Direct Principal Inbox</p>
-            </div>
 
-            <div className="bg-[#090d16] border border-slate-800/80 rounded-2xl p-6 space-y-3 hover:border-purple-500/40 transition shadow-xl group">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">Active Faculty</span>
-                <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
-                  <Award className="w-4 h-4" />
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                    CNIC Number
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cnic}
+                    onChange={(e) => setCnic(e.target.value)}
+                    placeholder="61101-1234567-1"
+                    className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 box-border"
+                  />
                 </div>
-              </div>
-              <div className="text-3xl font-black text-white font-mono">{stats.activeTeachers} Teachers</div>
-              <p className="text-[11px] text-slate-500">100% Attendance Verified</p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                      Role
+                    </label>
+                    <select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 box-border"
+                    >
+                      <option value="STUDENT">Student</option>
+                      <option value="TEACHER">Teacher</option>
+                      <option value="PARENT">Parent</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+92 300 1234567"
+                      className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 box-border"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={regLoading}
+                  className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md shadow-blue-600/30 disabled:opacity-50 mt-1"
+                >
+                  {regLoading ? "Registering..." : "Create Account"}
+                </button>
+              </form>
             </div>
-          </div>
+          )}
 
-          {/* Quick Core Portal Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Link href="/dashboard/principal/users" className="group bg-[#090d16] border border-slate-800/80 hover:border-blue-500/60 rounded-2xl p-6 space-y-4 transition-all duration-300 hover:-translate-y-1 shadow-xl">
-              <div className="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/30 text-blue-400 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                <UserPlus className="w-6 h-6" />
+          {/* FEES MANAGEMENT TAB */}
+          {activeTab === "fees" && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <span>💳</span> Fee Collections & Challans
+              </h3>
+              <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">August 2026 Collection</span>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    94% COLLECTED
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 font-mono">Total Pending: PKR 180,000</p>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition">User Enrollment & Directory</h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Register new teachers and students, manage role privileges, and assign CNIC credentials.
-                </p>
-              </div>
-              <div className="text-xs font-bold text-blue-400 flex items-center gap-1.5 pt-2">
-                Open Directory <ArrowUpRight className="w-4 h-4" />
-              </div>
-            </Link>
+            </div>
+          )}
+        </div>
+      </main>
 
-            <Link href="/dashboard/principal/fees" className="group bg-[#090d16] border border-slate-800/80 hover:border-emerald-500/60 rounded-2xl p-6 space-y-4 transition-all duration-300 hover:-translate-y-1 shadow-xl">
-              <div className="w-12 h-12 rounded-xl bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition">Fee Operations & Bank Challans</h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Batch issue fee vouchers and print 3-copy bank challans for MCB, Allied, or JazzCash.
-                </p>
-              </div>
-              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 pt-2">
-                Launch Fee Operations <ArrowUpRight className="w-4 h-4" />
-              </div>
-            </Link>
+      {/* Executive Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-2 py-1.5 flex items-center justify-around z-50 w-full max-w-full box-border">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-lg transition-all min-w-[70px] ${
+            activeTab === "overview" ? "text-blue-400 font-bold bg-blue-500/10" : "text-slate-400"
+          }`}
+        >
+          <span className="text-base">🏛️</span>
+          <span className="text-[10px] mt-0.5 leading-none">Roster</span>
+        </button>
 
-            <Link href="/dashboard/principal/desk" className="group bg-[#090d16] border border-slate-800/80 hover:border-amber-500/60 rounded-2xl p-6 space-y-4 transition-all duration-300 hover:-translate-y-1 shadow-xl">
-              <div className="w-12 h-12 rounded-xl bg-amber-600/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                <Lock className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white group-hover:text-amber-400 transition">Confidential Parent Desk</h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Encrypted communication inbox to receive notes directly from parents and send official responses.
-                </p>
-              </div>
-              <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5 pt-2">
-                Open Executive Inbox <ArrowUpRight className="w-4 h-4" />
-              </div>
-            </Link>
-          </div>
-        </main>
-      </div>
+        <button
+          onClick={() => setActiveTab("register")}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-lg transition-all min-w-[70px] ${
+            activeTab === "register" ? "text-blue-400 font-bold bg-blue-500/10" : "text-slate-400"
+          }`}
+        >
+          <span className="text-base">➕</span>
+          <span className="text-[10px] mt-0.5 leading-none">Add User</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("fees")}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-lg transition-all min-w-[70px] ${
+            activeTab === "fees" ? "text-blue-400 font-bold bg-blue-500/10" : "text-slate-400"
+          }`}
+        >
+          <span className="text-base">💳</span>
+          <span className="text-[10px] mt-0.5 leading-none">Fees</span>
+        </button>
+      </nav>
     </div>
   );
 }
