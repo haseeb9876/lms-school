@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   description: "Complete Institutional ERP Oversight for Modern Academic Excellence",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -16,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth">
-      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased overflow-x-hidden min-h-screen`}>
+      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased overflow-x-hidden min-h-screen w-full`}>
         {children}
       </body>
     </html>
