@@ -1,20 +1,9 @@
 /** @type {import('next').NextConfig} */
 const isProd = process.env.NODE_ENV === "production";
 
-// Vercel Blob serves uploaded files from a *.public.blob.vercel-storage.com
-// subdomain — allowed explicitly rather than opened up broadly.
-const csp = [
-  "default-src 'self'",
-  `script-src 'self'${isProd ? "" : " 'unsafe-eval'"}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.public.blob.vercel-storage.com",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join("; ");
-
+// Content-Security-Policy is set per-request in proxy.ts instead of here —
+// it needs a fresh nonce on every request so Next.js's own inline
+// hydration scripts are allowed to run without a blanket 'unsafe-inline'.
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
@@ -26,7 +15,6 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
-          { key: "Content-Security-Policy", value: csp },
           ...(isProd
             ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
             : []),
