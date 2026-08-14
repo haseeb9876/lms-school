@@ -1,78 +1,20 @@
-import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import type { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { randomToken, sha256Hex } from "@/lib/crypto/hash";
+import { signAccessToken, REFRESH_TOKEN_TTL_MS } from "./tokens";
 
-export const ACCESS_COOKIE = "access_token";
-export const REFRESH_COOKIE = "refresh_token";
-export const PENDING_2FA_COOKIE = "pending_2fa_token";
-
-const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
-const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const PENDING_2FA_TTL_SECONDS = 5 * 60;
-
-function getSecret(): Uint8Array {
-  const secret = process.env.JWT_SIGNING_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SIGNING_SECRET is not set.");
-  }
-  return new TextEncoder().encode(secret);
-}
-
-export interface AccessTokenPayload extends JWTPayload {
-  sub: string;
-  role: Role;
-  sid: string;
-}
-
-export interface Pending2FAPayload extends JWTPayload {
-  sub: string;
-  purpose: "2fa_pending";
-}
-
-export async function signAccessToken(params: {
-  userId: string;
-  role: Role;
-  sessionId: string;
-}): Promise<string> {
-  return new SignJWT({ role: params.role, sid: params.sessionId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(params.userId)
-    .setIssuedAt()
-    .setExpirationTime(`${ACCESS_TOKEN_TTL_SECONDS}s`)
-    .sign(getSecret());
-}
-
-export async function verifyAccessToken(token: string): Promise<AccessTokenPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecret());
-    if (typeof payload.sub !== "string" || typeof payload.role !== "string" || typeof payload.sid !== "string") {
-      return null;
-    }
-    return payload as AccessTokenPayload;
-  } catch {
-    return null;
-  }
-}
-
-export async function signPending2FAToken(userId: string): Promise<string> {
-  return new SignJWT({ purpose: "2fa_pending" })
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(userId)
-    .setIssuedAt()
-    .setExpirationTime(`${PENDING_2FA_TTL_SECONDS}s`)
-    .sign(getSecret());
-}
-
-export async function verifyPending2FAToken(token: string): Promise<string | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecret());
-    if (payload.purpose !== "2fa_pending" || typeof payload.sub !== "string") return null;
-    return payload.sub;
-  } catch {
-    return null;
-  }
-}
+// Re-exported so most call sites only need one import path.
+export {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  PENDING_2FA_COOKIE,
+  SESSION_COOKIE_MAX_AGE,
+  signAccessToken,
+  verifyAccessToken,
+  signPending2FAToken,
+  verifyPending2FAToken,
+} from "./tokens";
+export type { AccessTokenPayload } from "./tokens";
 
 export interface IssuedSession {
   accessToken: string;
@@ -139,9 +81,3 @@ export async function revokeAllSessionsForUser(userId: string): Promise<void> {
     data: { revokedAt: new Date() },
   });
 }
-
-export const SESSION_COOKIE_MAX_AGE = {
-  access: ACCESS_TOKEN_TTL_SECONDS,
-  refresh: REFRESH_TOKEN_TTL_MS / 1000,
-  pending2FA: PENDING_2FA_TTL_SECONDS,
-};

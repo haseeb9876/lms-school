@@ -28,7 +28,10 @@ class VercelBlobStorage implements StorageDriver {
  */
 export const storage: StorageDriver = new VercelBlobStorage();
 
-export const UPLOAD_LIMITS = {
+export const UPLOAD_LIMITS: {
+  logo: { maxBytes: number; allowedMimeTypes: string[] };
+  attachment: { maxBytes: number; allowedMimeTypes: string[] };
+} = {
   logo: { maxBytes: 2 * 1024 * 1024, allowedMimeTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/webp"] },
-  attachment: { maxBytes: 10 * 1024 * 1024, allowedMimeTypes: [] as string[] }, // validated by magic bytes at call site
-} as const;
+  attachment: { maxBytes: 10 * 1024 * 1024, allowedMimeTypes: [] }, // validated by magic bytes at call site
+};
