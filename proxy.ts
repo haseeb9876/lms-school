@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/auth/session";
+import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/auth/tokens";
 
 /**
  * Default-deny: everything requires a valid session unless explicitly
@@ -25,7 +25,7 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PAGE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/icon" || STATIC_ASSET_PATTERN.test(pathname)) {
