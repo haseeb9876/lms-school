@@ -25,15 +25,53 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PAGE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/**
+ * A static `script-src 'self'` CSP (the old next.config.js approach) blocks
+ * the inline `<script>` tags Next.js's App Router injects to stream and
+ * hydrate the page — with no way for the browser to run them, React never
+ * hydrates, and every onClick/onSubmit handler silently no-ops (forms fall
+ * back to native browser submission instead). This generates a fresh nonce
+ * per request and threads it through both the response header and the
+ * request (via x-nonce), which is how Next.js knows to stamp that same
+ * nonce onto its own inline scripts — the documented pattern from
+ * https://nextjs.org/docs/app/guides/content-security-policy.
+ */
+function buildCsp(nonce: string, isProd: boolean): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isProd ? "" : " 'unsafe-eval'"}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.public.blob.vercel-storage.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp(nonce, process.env.NODE_ENV === "production");
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  function next(): NextResponse {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  }
+
   if (pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/icon" || STATIC_ASSET_PATTERN.test(pathname)) {
-    return NextResponse.next();
+    return next();
   }
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return next();
   }
 
   const token = request.cookies.get(ACCESS_COOKIE)?.value;
@@ -41,14 +79,18 @@ export async function proxy(request: NextRequest) {
 
   if (!session) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "You need to sign in to do that." }, { status: 401 });
+      const response = NextResponse.json({ error: "You need to sign in to do that." }, { status: 401 });
+      response.headers.set("Content-Security-Policy", csp);
+      return response;
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
   }
 
-  return NextResponse.next();
+  return next();
 }
 
 export const config = {
