@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Receipt } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertCanViewStudent } from "@/lib/auth/rbac";
+import { guardPage } from "@/lib/auth/page-guards";
 import { getInvoiceDetail } from "@/lib/queries/fees";
 import { getBrandingSettings } from "@/lib/branding";
 import { formatCurrency, formatDate, formatDateTime, humanizeEnum } from "@/lib/format";
@@ -46,7 +47,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
   // A guardian or student may only open an invoice belonging to a student
   // they're entitled to see.
-  await assertCanViewStudent(session, invoice.studentId);
+  await guardPage(() => assertCanViewStudent(session, invoice.studentId));
 
   const branding = await getBrandingSettings();
   const amountPaid = invoice.payments.reduce((sum, payment) => sum + payment.amountPaid, 0);

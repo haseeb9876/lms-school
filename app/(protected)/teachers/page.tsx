@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { UserSquare } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
+import { prisma } from "@/lib/db";
 import { listTeachers, type TeacherListRow } from "@/lib/queries/staff";
 import { buildHref, readPage, readParam, type RawSearchParams } from "@/lib/search-params";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -11,6 +12,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { NewTeacherButton } from "@/components/people/NewTeacherDialog";
 
 export const metadata: Metadata = { title: "Teachers" };
 
@@ -21,6 +23,15 @@ export default async function TeachersPage({
 }) {
   await requireAuth(["PRINCIPAL"]);
   const params = await searchParams;
+
+  // Suggest the next free employee ID so the common case needs no decision.
+  const lastEmployee = await prisma.teacherProfile.findFirst({
+    where: { employeeId: { startsWith: "EMP-" } },
+    orderBy: { employeeId: "desc" },
+    select: { employeeId: true },
+  });
+  const lastSequence = lastEmployee ? Number.parseInt(lastEmployee.employeeId.slice(4), 10) : 0;
+  const suggestedEmployeeId = `EMP-${String((Number.isFinite(lastSequence) ? lastSequence : 0) + 1).padStart(3, "0")}`;
 
   const query = readParam(params, "q");
   const page = readPage(params);
@@ -96,7 +107,11 @@ export default async function TeachersPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Teachers" description="Teaching staff and their assigned classes." />
+      <PageHeader
+        title="Teachers"
+        description="Teaching staff and their assigned classes."
+        actions={<NewTeacherButton suggestedEmployeeId={suggestedEmployeeId} />}
+      />
 
       <FilterBar
         search={<SearchInput placeholder="Search teachers…" className="w-full sm:max-w-xs" />}

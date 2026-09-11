@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpen, ClipboardCheck, Users } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertTeachesSection } from "@/lib/auth/rbac";
+import { guardPage } from "@/lib/auth/page-guards";
 import { getClassDetail, getSectionAttendanceByStudent } from "@/lib/queries/classes";
 import { readEnum, type RawSearchParams } from "@/lib/search-params";
 import { formatPercent, todaySchoolDate } from "@/lib/format";
@@ -41,7 +42,7 @@ export default async function ClassDetailPage({
   const { id } = await params;
 
   // A teacher may only open a section they actually teach.
-  await assertTeachesSection(session, id);
+  await guardPage(() => assertTeachesSection(session, id));
 
   const tab: Tab = readEnum(await searchParams, "tab", TABS) ?? "students";
   const section = await getClassDetail(id);

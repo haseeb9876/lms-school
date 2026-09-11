@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CalendarDays, CheckCircle2, ScrollText, Users } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertTeachesSection } from "@/lib/auth/rbac";
+import { guardPage } from "@/lib/auth/page-guards";
 import {
   getAssignmentDetail,
   getAssignmentRoster,
@@ -39,8 +41,11 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
     // A student may only open an assignment set for their own class.
     const enrollment = await getStudentSection(session.userId);
     if (!enrollment || enrollment.sectionId !== assignment.sectionId) {
-      const { forbidden } = await import("next/navigation");
-      forbidden();
+      // redirect() rather than forbidden(): the latter needs the
+      // experimental authInterrupts flag, which this app doesn't enable, so
+      // calling it would throw instead of refusing. /unauthorized is how
+      // every other refusal in the app already lands.
+      redirect("/unauthorized");
     }
 
     const submission = await getMySubmission(id, session.userId);
@@ -121,7 +126,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
   }
 
   // Staff view — grading.
-  await assertTeachesSection(session, assignment.sectionId);
+  await guardPage(() => assertTeachesSection(session, assignment.sectionId));
   const roster = await getAssignmentRoster(id, assignment.sectionId);
 
   const submitted = roster.filter((row) => row.submission?.submittedAt).length;

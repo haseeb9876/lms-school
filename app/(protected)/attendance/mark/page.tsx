@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ClipboardList } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertCanMarkAttendance } from "@/lib/auth/rbac";
+import { guardPage } from "@/lib/auth/page-guards";
 import { getSectionOptions, getTeacherSectionOptions } from "@/lib/queries/academics";
 import { getSectionRoster } from "@/lib/queries/attendance";
 import { readParam, type RawSearchParams } from "@/lib/search-params";
@@ -57,7 +58,7 @@ export default async function MarkAttendancePage({
   if (!section) {
     // The id isn't in this user's own list of sections — refuse rather than
     // silently falling back, so a mistyped or guessed id is visible.
-    await assertCanMarkAttendance(session, sectionId!);
+    await guardPage(() => assertCanMarkAttendance(session, sectionId!));
   }
 
   const sectionLabel = section?.label ?? "Class";

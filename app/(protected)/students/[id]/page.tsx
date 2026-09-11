@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CalendarCheck, FileBarChart, ScrollText, Wallet } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertCanViewStudent } from "@/lib/auth/rbac";
+import { guardPage } from "@/lib/auth/page-guards";
 import { logAudit } from "@/lib/audit";
 import {
   getStudentAttendanceSummary,
@@ -61,7 +62,7 @@ export default async function StudentDetailPage({
 
   // Throws before any record is read into the page, so an unauthorised
   // viewer never reaches a render that could leak a name in an error.
-  await assertCanViewStudent(session, id);
+  await guardPage(() => assertCanViewStudent(session, id));
 
   const tab: Tab = readEnum(await searchParams, "tab", TABS) ?? "overview";
   const student = await getStudentDetail(id);

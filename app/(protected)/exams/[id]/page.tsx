@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarDays, FileBarChart, TrendingUp, Users } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertTeachesSection } from "@/lib/auth/rbac";
+import { guardPage } from "@/lib/auth/page-guards";
 import { getExamDetail, getExamRoster } from "@/lib/queries/exams";
 import { formatDate, formatPercent } from "@/lib/format";
 import { isPassing } from "@/lib/grading";
@@ -26,7 +27,7 @@ export default async function ExamDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
 
   const exam = await getExamDetail(id);
-  await assertTeachesSection(session, exam.sectionId);
+  await guardPage(() => assertTeachesSection(session, exam.sectionId));
 
   const roster = await getExamRoster(id, exam.sectionId);
   const sectionLabel = `${exam.section.class.name} — ${exam.section.name}`;

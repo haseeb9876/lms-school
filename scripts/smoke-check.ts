@@ -41,7 +41,9 @@ const ROUTES: Record<Role, string[]> = {
     "/attendance",
     "/attendance/mark",
     "/assignments",
+    "/assignments/:assignmentId",
     "/exams",
+    "/exams/:examId",
     "/fees",
     "/fees/invoices/:invoiceId",
     "/announcements",
@@ -59,7 +61,9 @@ const ROUTES: Record<Role, string[]> = {
     "/attendance",
     "/attendance/mark",
     "/assignments",
+    "/assignments/:assignmentId",
     "/exams",
+    "/exams/:examId",
     "/announcements",
     "/helpdesk",
     "/settings/security",
@@ -80,6 +84,7 @@ const ROUTES: Record<Role, string[]> = {
     "/children",
     "/timetable",
     "/results",
+    "/settings/profile",
     "/fees",
     "/announcements",
     "/helpdesk",
@@ -115,12 +120,49 @@ async function sessionCookieFor(role: Role): Promise<string | null> {
   return `${ACCESS_COOKIE}=${accessToken}`;
 }
 
-async function resolvePlaceholders(): Promise<Record<string, string>> {
-  const [student, teacher, section, invoice] = await Promise.all([
+/**
+ * Fixtures for the `:id` placeholders, resolved per role.
+ *
+ * Picking a globally-first assignment or exam would hand a teacher a record
+ * from a class they don't teach — the app correctly refuses that, and the
+ * check would report its own bad fixture as a failure. Each role gets ids it
+ * is genuinely entitled to.
+ */
+async function resolvePlaceholders(role: Role): Promise<Record<string, string>> {
+  const teacher = await prisma.user.findFirst({
+    where: { role: "TEACHER", status: "ACTIVE" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+
+  const actingTeacherId =
+    role === "TEACHER"
+      ? (
+          await prisma.user.findFirst({
+            where: { role: "TEACHER", status: "ACTIVE" },
+            orderBy: { createdAt: "asc" },
+            select: { id: true },
+          })
+        )?.id
+      : undefined;
+
+  const sectionScope = actingTeacherId
+    ? { teacherAssignments: { some: { teacherId: actingTeacherId } } }
+    : {};
+
+  const [student, section, invoice, assignment, exam, ticket] = await Promise.all([
     prisma.studentProfile.findFirst({ select: { id: true } }),
-    prisma.user.findFirst({ where: { role: "TEACHER" }, select: { id: true } }),
-    prisma.section.findFirst({ select: { id: true } }),
+    prisma.section.findFirst({ where: sectionScope, select: { id: true } }),
     prisma.feeInvoice.findFirst({ select: { id: true } }),
+    prisma.assignment.findFirst({
+      where: actingTeacherId ? { section: sectionScope } : {},
+      select: { id: true },
+    }),
+    prisma.exam.findFirst({
+      where: actingTeacherId ? { section: sectionScope } : {},
+      select: { id: true },
+    }),
+    prisma.deskTicket.findFirst({ select: { id: true } }),
   ]);
 
   return {
@@ -128,6 +170,9 @@ async function resolvePlaceholders(): Promise<Record<string, string>> {
     ":teacherId": teacher?.id ?? "missing",
     ":sectionId": section?.id ?? "missing",
     ":invoiceId": invoice?.id ?? "missing",
+    ":assignmentId": assignment?.id ?? "missing",
+    ":examId": exam?.id ?? "missing",
+    ":ticketId": ticket?.id ?? "missing",
   };
 }
 
@@ -140,7 +185,6 @@ function fill(route: string, values: Record<string, string>): string {
 }
 
 async function main() {
-  const placeholders = await resolvePlaceholders();
   let failures = 0;
   let checked = 0;
 
@@ -151,6 +195,7 @@ async function main() {
       continue;
     }
 
+    const placeholders = await resolvePlaceholders(role);
     console.log(`\n${role}`);
 
     for (const route of ROUTES[role]) {

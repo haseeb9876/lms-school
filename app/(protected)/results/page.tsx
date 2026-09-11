@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FileBarChart, TrendingUp } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertCanViewStudent } from "@/lib/auth/rbac";
+import { guardPage } from "@/lib/auth/page-guards";
 import { getStudentResultCard } from "@/lib/queries/exams";
 import { getChildrenForParent, getStudentSection } from "@/lib/queries/timetable";
 import { getBrandingSettings } from "@/lib/branding";
@@ -53,7 +54,7 @@ export default async function ResultsPage({
 
     // The picker only offers this guardian's own children, but the id still
     // arrives from the URL — so it's authorised rather than assumed.
-    await assertCanViewStudent(session, child.id);
+    await guardPage(() => assertCanViewStudent(session, child.id));
 
     studentId = child.id;
     studentName = child.name;

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GraduationCap, UserPlus } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { listStudents, type StudentListRow } from "@/lib/queries/students";
 import { getSectionOptions, getTeacherSectionOptions } from "@/lib/queries/academics";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { StudentStatusBadge } from "@/components/students/StudentStatusBadge";
+import { NewStudentButton } from "@/components/people/NewStudentDialog";
 
 export const metadata: Metadata = { title: "Students" };
 
@@ -132,13 +133,9 @@ export default async function StudentsPage({
         }
         actions={
           session.role === "PRINCIPAL" ? (
-            <a
-              href="/students/new"
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-brand px-4 text-sm font-medium text-brand-fg shadow-soft transition-all hover:brightness-110"
-            >
-              <UserPlus className="h-4 w-4" aria-hidden="true" />
-              Add student
-            </a>
+            <NewStudentButton
+              sections={sectionOptions.map((section) => ({ value: section.id, label: section.label }))}
+            />
           ) : undefined
         }
       />
