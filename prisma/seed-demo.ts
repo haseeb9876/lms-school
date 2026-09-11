@@ -45,6 +45,19 @@ const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "DemoPassword2026!";
 /** "Today" for the generated data. Fixed so reseeding is reproducible. */
 const TODAY = new Date("2026-09-12T00:00:00.000Z");
 
+/**
+ * A timestamp `msAgo` before now, that is never in the future.
+ *
+ * TODAY is pinned to midnight UTC so the dataset is reproducible, but the
+ * clock passes through that instant during the day — anything anchored to
+ * TODAY alone gets stamped slightly ahead of real time, and the UI then
+ * renders a notice "published in 39 minutes". Clamping to the real clock
+ * keeps timestamps that are meant to read as recent actually in the past.
+ */
+function recently(msAgo: number): Date {
+  return new Date(Math.min(TODAY.getTime(), Date.now()) - msAgo);
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -182,6 +195,21 @@ async function main() {
       },
     });
     console.log(`  Principal login CNIC: ${cnic}`);
+  } else if (principal.name === "School Principal") {
+    /*
+     * The bootstrap seed (prisma/seed.ts) names the first account "School
+     * Principal", which is right for a real first run but reads badly once
+     * the app addresses people by name — the dashboard greets them with
+     * "Good morning, School". Only the untouched placeholder is replaced;
+     * a principal who has set their own name keeps it.
+     */
+    principal = await prisma.user.update({
+      where: { id: principal.id },
+      data: {
+        name: "Dr. Sameena Iqbal",
+        email: principal.email ?? "principal@crescentgrammar.edu.pk",
+      },
+    });
   }
 
   // -------------------------------------------------------------------
@@ -277,7 +305,7 @@ async function main() {
       phoneHash: blindIndex(phone),
       role: "TEACHER",
       passwordHash,
-      lastLoginAt: new Date(TODAY.getTime() - rng.int(0, 72) * 3600_000),
+      lastLoginAt: recently(rng.int(0, 72) * 3600_000),
     });
 
     teacherProfileRows.push({
@@ -345,7 +373,7 @@ async function main() {
         name: `${first} ${last}`,
         role: "STUDENT",
         passwordHash,
-        lastLoginAt: rng.chance(0.6) ? new Date(TODAY.getTime() - rng.int(0, 240) * 3600_000) : null,
+        lastLoginAt: rng.chance(0.6) ? recently(rng.int(0, 240) * 3600_000) : null,
       });
 
       studentProfileRows.push({
@@ -385,7 +413,7 @@ async function main() {
         phoneHash: blindIndex(guardianPhone),
         role: "PARENT",
         passwordHash,
-        lastLoginAt: rng.chance(0.5) ? new Date(TODAY.getTime() - rng.int(0, 400) * 3600_000) : null,
+        lastLoginAt: rng.chance(0.5) ? recently(rng.int(0, 400) * 3600_000) : null,
       });
 
       parentLinkRows.push({
@@ -795,7 +823,7 @@ async function main() {
       body: announcement.body,
       authorId: principal.id,
       audience: announcement.audience,
-      publishedAt: new Date(TODAY.getTime() - index * 2 * 86400_000),
+      publishedAt: recently(index * 2 * 86400_000),
     })),
   });
 
@@ -814,7 +842,7 @@ async function main() {
       ]),
       body: "Open the portal to view the details.",
       link: "/",
-      createdAt: new Date(TODAY.getTime() - rng.int(1, 96) * 3600_000),
+      createdAt: recently(rng.int(1, 96) * 3600_000),
     })),
   });
 
@@ -843,8 +871,8 @@ async function main() {
       status: index < 3 ? "OPEN" : index === 3 ? "IN_PROGRESS" : "RESOLVED",
       priority: rng.pick(["LOW", "MEDIUM", "HIGH"] as const),
       assignedToId: index >= 3 ? principal.id : null,
-      createdAt: new Date(TODAY.getTime() - rng.int(1, 14) * 86400_000),
-      resolvedAt: index === 4 ? new Date(TODAY.getTime() - 86400_000) : null,
+      createdAt: recently(rng.int(1, 14) * 86400_000),
+      resolvedAt: index === 4 ? recently(86400_000) : null,
     });
 
     ticketMessageRows.push({

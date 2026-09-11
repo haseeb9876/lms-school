@@ -163,12 +163,6 @@ export function recentSchoolDays(end: Date, count: number): Date[] {
   return days.reverse();
 }
 
-/** Letter grade from a percentage, on the common Pakistani school scale. */
-export function gradeForPercentage(percentage: number): string {
-  if (percentage >= 80) return "A+";
-  if (percentage >= 70) return "A";
-  if (percentage >= 60) return "B";
-  if (percentage >= 50) return "C";
-  if (percentage >= 40) return "D";
-  return "F";
-}
+// Re-exported from the app's own grading module so seeded results use the
+// exact scale the app awards, rather than a copy that can drift from it.
+export { gradeForPercentage } from "../lib/grading";

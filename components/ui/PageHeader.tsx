@@ -21,7 +21,9 @@ export function PageHeader({
   className,
 }: {
   title: string;
-  description?: string;
+  /** ReactNode rather than string so a description can link to the thing
+   *  it names (a class, a subject) instead of only describing it. */
+  description?: ReactNode;
   breadcrumbs?: Crumb[];
   actions?: ReactNode;
   className?: string;

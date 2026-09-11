@@ -33,12 +33,37 @@ export function readableTextColor(backgroundHex: string): "#FFFFFF" | "#111111" 
 }
 
 /**
- * WCAG-ish sanity check for a brand color against both text colors it might
- * pair with — stops a principal from picking something that renders
- * effectively invisible against every reasonable foreground.
+ * The light surface the brand color is painted *onto* when it's used as a
+ * foreground — links, the active nav item, "view details" affordances.
+ * `--brand-primary-soft` is a 88% white mix of the brand, so white is a
+ * close enough stand-in for both.
+ */
+const LIGHT_SURFACE = "#FFFFFF";
+
+/** WCAG's minimum for large text, icons and other non-text UI. */
+const UI_CONTRAST_MIN = 3;
+
+/**
+ * Whether a brand color is usable as a foreground.
+ *
+ * The obvious check — "does *some* foreground read against this color" — is
+ * worthless here, and provably so: because `readableTextColor` picks black
+ * or white per color, every color in the RGB cube passes it (the worst case
+ * still clears 4.3:1). It rejected nothing, while appearing to validate.
+ *
+ * The contrast that can actually fail is the other direction. The brand is
+ * used *as* the ink in plenty of places — `text-brand` on a white card, the
+ * active nav label, link hovers — and a pale brand makes all of those
+ * unreadable while `bg-brand` buttons still look fine. So this measures the
+ * brand against the surface it's drawn on, which is the case that breaks.
+ *
+ * Known limitation: only the light surface is checked. A very dark brand is
+ * still poor as ink on the dark theme's surface; fixing that properly means
+ * deriving a lightened brand step for dark mode rather than rejecting the
+ * color outright.
  */
 export function isBrandColorAccessible(hex: string): boolean {
-  return contrastRatio(hex, "#FFFFFF") >= 3 || contrastRatio(hex, "#111111") >= 3;
+  return contrastRatio(hex, LIGHT_SURFACE) >= UI_CONTRAST_MIN;
 }
 
 /** A soft tint of the brand color for subtle backgrounds (badges, hover states). */

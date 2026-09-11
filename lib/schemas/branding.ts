@@ -7,7 +7,10 @@ export const brandingUpdateSchema = z.object({
     .string()
     .trim()
     .refine(isValidHexColor, "Enter a valid hex color, e.g. #0E6E68.")
-    .refine(isBrandColorAccessible, "That color is too light/dark to read text on. Pick something with more contrast."),
+    .refine(
+      isBrandColorAccessible,
+      "That color is too light to read as text on a white background. Pick something darker."
+    ),
   address: z.string().trim().max(300).optional().or(z.literal("")),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   email: z.string().trim().email("Enter a valid email address.").optional().or(z.literal("")),

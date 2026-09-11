@@ -104,12 +104,25 @@
   --info: #2064b4;
   --info-soft: #e3eefb;
 
-  --chart-1: #0e6e68;
-  --chart-2: #2064b4;
-  --chart-3: #b4740e;
-  --chart-4: #7d4bc4;
-  --chart-5: #1f9254;
-  --chart-6: #c23b2c;
+  /*
+   * Categorical chart series, in a fixed order that is itself the
+   * colour-blind-safety mechanism — slots are assigned 1, 2, 3… and never
+   * cycled or reordered per chart. Validated as a set (lightness band,
+   * chroma floor, adjacent-pair CVD separation, normal-vision separation,
+   * contrast) rather than picked by eye; the brand teal deliberately isn't
+   * in here, because a principal can change it to anything and would break
+   * the guarantee.
+   *
+   * Slots 3–5 fall below 3:1 on the light surface, so any chart using them
+   * must carry direct labels or a table view rather than relying on the
+   * mark alone.
+   */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
 
   --shadow-tint-a: rgba(26, 24, 21, 0.04);
   --shadow-tint-b: rgba(26, 24, 21, 0.14);
@@ -144,12 +157,12 @@
   --info: #6aa8f5;
   --info-soft: rgba(106, 168, 245, 0.14);
 
-  --chart-1: #4fd1c5;
-  --chart-2: #6aa8f5;
-  --chart-3: #fbbf4e;
-  --chart-4: #b18df5;
-  --chart-5: #4ade80;
-  --chart-6: #f87a6a;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
 
   --shadow-tint-a: rgba(0, 0, 0, 0.3);
   --shadow-tint-b: rgba(0, 0, 0, 0.5);
@@ -183,12 +196,12 @@
     --info: #6aa8f5;
     --info-soft: rgba(106, 168, 245, 0.14);
 
-    --chart-1: #4fd1c5;
-    --chart-2: #6aa8f5;
-    --chart-3: #fbbf4e;
-    --chart-4: #b18df5;
-    --chart-5: #4ade80;
-    --chart-6: #f87a6a;
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
 
     --shadow-tint-a: rgba(0, 0, 0, 0.3);
     --shadow-tint-b: rgba(0, 0, 0, 0.5);
