@@ -14,8 +14,8 @@ export async function PrincipalDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Principal dashboard</h1>
-        <p className="text-sm text-neutral-500">A live snapshot of your school.</p>
+        <h1 className="text-xl font-semibold text-fg">Principal dashboard</h1>
+        <p className="text-sm text-fg-subtle">A live snapshot of your school.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

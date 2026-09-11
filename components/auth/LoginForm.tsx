@@ -84,7 +84,7 @@ export function LoginForm() {
     return (
       <form onSubmit={onSubmitTwoFactor} className="flex flex-col gap-4">
         {serverError && <Alert variant="danger">{serverError}</Alert>}
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-fg-muted">
           {useRecovery
             ? "Enter one of your saved recovery codes."
             : twoFactorMethod === "TOTP"
@@ -113,7 +113,7 @@ export function LoginForm() {
         </Button>
         <button
           type="button"
-          className="text-center text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-700"
+          className="text-center text-sm text-fg-subtle underline underline-offset-2 hover:text-fg-muted"
           onClick={() => setUseRecovery((v) => !v)}
         >
           {useRecovery ? "Use a verification code instead" : "Can't access your code? Use a recovery code"}
@@ -141,7 +141,7 @@ export function LoginForm() {
       <Button type="submit" loading={submitting}>
         Sign in
       </Button>
-      <a href="/forgot-password" className="text-center text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-700">
+      <a href="/forgot-password" className="text-center text-sm text-fg-subtle underline underline-offset-2 hover:text-fg-muted">
         Forgot your password?
       </a>
     </form>

@@ -103,10 +103,10 @@ export function TwoFactorSettings({ initiallyEnabled }: { initiallyEnabled: bool
     <Card>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-900">Two-factor authentication</h2>
+          <h2 className="text-sm font-semibold text-fg">Two-factor authentication</h2>
           <Badge variant={enabled ? "success" : "neutral"}>{enabled ? "Enabled" : "Disabled"}</Badge>
         </div>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-fg-subtle">
           Adds a second step at sign-in using an authenticator app, on top of your password.
         </p>
 
@@ -127,7 +127,7 @@ export function TwoFactorSettings({ initiallyEnabled }: { initiallyEnabled: bool
         )}
 
         {stage === "disabling" && (
-          <div className="flex flex-col gap-3 rounded-md border border-neutral-200 p-4">
+          <div className="flex flex-col gap-3 rounded-md border border-line p-4">
             <InputField
               label="Confirm your password to disable"
               type="password"
@@ -146,8 +146,8 @@ export function TwoFactorSettings({ initiallyEnabled }: { initiallyEnabled: bool
         )}
 
         {stage === "enrolling" && (
-          <div className="flex flex-col gap-3 rounded-md border border-neutral-200 p-4">
-            <p className="text-sm text-neutral-700">
+          <div className="flex flex-col gap-3 rounded-md border border-line p-4">
+            <p className="text-sm text-fg-muted">
               Scan this QR code with an authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit
               code it shows.
             </p>
@@ -156,7 +156,7 @@ export function TwoFactorSettings({ initiallyEnabled }: { initiallyEnabled: bool
               <img src={qrDataUrl} alt="Scan with your authenticator app" className="h-40 w-40 self-center" />
             )}
             {secret && (
-              <p className="break-all rounded-md bg-neutral-100 px-3 py-2 text-center font-mono text-xs text-neutral-600">
+              <p className="break-all rounded-md bg-surface-hover px-3 py-2 text-center font-mono text-xs text-fg-muted">
                 {secret}
               </p>
             )}
@@ -183,9 +183,9 @@ export function TwoFactorSettings({ initiallyEnabled }: { initiallyEnabled: bool
               Save these recovery codes somewhere safe. Each one can be used once if you lose access to your
               authenticator app. They won&apos;t be shown again.
             </p>
-            <div className="grid grid-cols-2 gap-2 font-mono text-sm text-neutral-900">
+            <div className="grid grid-cols-2 gap-2 font-mono text-sm text-fg">
               {recoveryCodes.map((rc) => (
-                <span key={rc} className="rounded-md bg-white px-2 py-1 text-center">
+                <span key={rc} className="rounded-md bg-surface-raised px-2 py-1 text-center">
                   {rc}
                 </span>
               ))}

@@ -10,13 +10,13 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface-sunken px-4">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
           <AlertTriangle className="h-6 w-6" aria-hidden="true" />
         </div>
-        <h1 className="text-lg font-semibold text-neutral-900">Something went wrong</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-lg font-semibold text-fg">Something went wrong</h1>
+        <p className="text-sm text-fg-subtle">
           {error.digest ? `Reference: ${error.digest}. ` : ""}
           Try again, or contact support if it keeps happening.
         </p>

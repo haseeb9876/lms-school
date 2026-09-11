@@ -11,7 +11,7 @@ export default async function LoginPage() {
   const branding = await getBrandingSettings();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-surface-sunken px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           {branding.logoUrl ? (
@@ -30,12 +30,12 @@ export default async function LoginPage() {
             </div>
           )}
           <div>
-            <h1 className="text-xl font-semibold text-neutral-900">{branding.schoolName}</h1>
-            <p className="text-sm text-neutral-500">Sign in to your account</p>
+            <h1 className="text-xl font-semibold text-fg">{branding.schoolName}</h1>
+            <p className="text-sm text-fg-subtle">Sign in to your account</p>
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-soft">
+        <div className="rounded-lg border border-line bg-surface-raised p-6 shadow-soft">
           <LoginForm />
         </div>
       </div>

@@ -51,7 +51,7 @@ export function PasswordChangeForm() {
   return (
     <Card>
       <CardContent>
-        <h2 className="mb-4 text-sm font-semibold text-neutral-900">Change password</h2>
+        <h2 className="mb-4 text-sm font-semibold text-fg">Change password</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
           {serverError && <Alert variant="danger">{serverError}</Alert>}
           {successMessage && <Alert variant="success">{successMessage}</Alert>}

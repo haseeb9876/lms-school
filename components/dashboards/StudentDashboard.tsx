@@ -28,8 +28,8 @@ export async function StudentDashboard({ userId }: { userId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Your dashboard</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-xl font-semibold text-fg">Your dashboard</h1>
+        <p className="text-sm text-fg-subtle">
           {currentEnrollment
             ? `${currentEnrollment.section.class.name} · ${currentEnrollment.section.name}`
             : "Not yet enrolled in a class this year."}

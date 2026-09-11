@@ -10,8 +10,8 @@ export default async function SecuritySettingsPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Account security</h1>
-        <p className="text-sm text-neutral-500">Manage your password and two-factor authentication.</p>
+        <h1 className="text-xl font-semibold text-fg">Account security</h1>
+        <p className="text-sm text-fg-subtle">Manage your password and two-factor authentication.</p>
       </div>
       <PasswordChangeForm />
       <TwoFactorSettings initiallyEnabled={user.twoFactorEnabled} />

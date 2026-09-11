@@ -7,15 +7,16 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && npm run check:routes && next build",
+    "build": "prisma generate && npm run check:auth && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "check:routes": "tsx scripts/check-route-auth.ts",
+    "check:auth": "tsx scripts/check-auth-coverage.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:seed:demo": "tsx prisma/seed-demo.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

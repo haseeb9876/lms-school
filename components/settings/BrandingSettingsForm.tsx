@@ -98,15 +98,15 @@ export function BrandingSettingsForm({ initialSettings }: { initialSettings: Sch
     <div className="flex flex-col gap-6">
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <h2 className="text-sm font-semibold text-neutral-900">School logo</h2>
+          <h2 className="text-sm font-semibold text-fg">School logo</h2>
           {logoError && <Alert variant="danger">{logoError}</Alert>}
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+            <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-xl border border-line bg-surface-sunken">
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl} alt="School logo" className="h-full w-full object-cover" />
               ) : (
-                <span className="text-xs text-neutral-400">No logo</span>
+                <span className="text-xs text-fg-subtle">No logo</span>
               )}
             </div>
             <div>
@@ -119,7 +119,7 @@ export function BrandingSettingsForm({ initialSettings }: { initialSettings: Sch
               >
                 Upload new logo
               </Button>
-              <p className="mt-1 text-xs text-neutral-500">PNG, JPEG, WebP, or SVG. Max 2MB.</p>
+              <p className="mt-1 text-xs text-fg-subtle">PNG, JPEG, WebP, or SVG. Max 2MB.</p>
             </div>
             <input
               ref={fileInputRef}
@@ -141,22 +141,22 @@ export function BrandingSettingsForm({ initialSettings }: { initialSettings: Sch
             <InputField label="School name" error={errors.schoolName?.message} {...register("schoolName")} />
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-neutral-800">Brand color</label>
+              <label className="text-sm font-medium text-fg">Brand color</label>
               <div className="flex items-center gap-3">
                 <input
                   type="color"
                   aria-label="Pick brand color"
                   value={HEX_PATTERN.test(primaryColor ?? "") ? primaryColor : "#0e6e68"}
                   onChange={(e) => setValue("primaryColor", e.target.value, { shouldValidate: true })}
-                  className="h-10 w-14 flex-none cursor-pointer rounded-md border border-neutral-200"
+                  className="h-10 w-14 flex-none cursor-pointer rounded-md border border-line"
                 />
                 <input
-                  className="h-10 flex-1 rounded-md border border-neutral-200 px-3 text-sm text-neutral-900"
+                  className="h-10 flex-1 rounded-md border border-line px-3 text-sm text-fg"
                   {...register("primaryColor")}
                 />
               </div>
               {errors.primaryColor && <p className="text-xs text-danger">{errors.primaryColor.message}</p>}
-              <p className="text-xs text-neutral-500">Used for buttons, links, and highlights throughout the app.</p>
+              <p className="text-xs text-fg-subtle">Used for buttons, links, and highlights throughout the app.</p>
             </div>
 
             <InputField label="Address" error={errors.address?.message} {...register("address")} />
