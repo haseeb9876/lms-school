@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalizeCnic } from "@/lib/crypto/identifiers";
 import { dateOnlySchema } from "./attendance";
+import { DAYS_OF_WEEK } from "./timetable";
 
 /**
  * CNIC is the login identifier for every account in this app, so it's
@@ -52,6 +53,38 @@ export const createStudentSchema = z.object({
   guardianRelationship: z.enum(["FATHER", "MOTHER", "GUARDIAN"]),
 });
 
+/**
+ * One class a teacher is given at the moment their account is created,
+ * optionally with its first timetable period.
+ *
+ * The subject and class are what actually grant access — a teacher can only
+ * mark registers and enter marks for the pairs listed here — so they are
+ * required. The period is optional: a school often knows who teaches what
+ * before the timetable is finalised, and forcing a day and time would mean
+ * inventing one.
+ */
+export const teacherAssignmentInputSchema = z
+  .object({
+    subjectId: z.string().min(1, "Choose a subject."),
+    sectionId: z.string().min(1, "Choose a class."),
+    dayOfWeek: z.enum(DAYS_OF_WEEK).optional().or(z.literal("")),
+    startTime: z.string().optional().or(z.literal("")),
+    endTime: z.string().optional().or(z.literal("")),
+    room: z.string().trim().max(40).optional().or(z.literal("")),
+  })
+  .refine(
+    (value) =>
+      // A period is all-or-nothing: a start with no day, or an end with no
+      // start, would be stored as a lesson nobody could attend.
+      (!value.dayOfWeek && !value.startTime && !value.endTime) ||
+      Boolean(value.dayOfWeek && value.startTime && value.endTime),
+    { message: "Give the day, start and end together, or leave all three blank.", path: ["startTime"] }
+  )
+  .refine(
+    (value) => !value.startTime || !value.endTime || value.startTime < value.endTime,
+    { message: "The period must end after it starts.", path: ["endTime"] }
+  );
+
 export const createTeacherSchema = z.object({
   name: nameSchema,
   cnic: cnicSchema,
@@ -59,6 +92,10 @@ export const createTeacherSchema = z.object({
   qualification: z.string().trim().max(120).optional().or(z.literal("")),
   email: optionalEmail,
   phone: optionalPhone,
+  assignments: z
+    .array(teacherAssignmentInputSchema)
+    .max(40, "That's more classes than one teacher can take.")
+    .default([]),
 });
 
 export const setUserStatusSchema = z.object({

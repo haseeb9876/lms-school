@@ -3,6 +3,7 @@ import { UserSquare } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/db";
 import { listTeachers, type TeacherListRow } from "@/lib/queries/staff";
+import { getSectionOptions, getSubjectOptions } from "@/lib/queries/academics";
 import { buildHref, readPage, readParam, type RawSearchParams } from "@/lib/search-params";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -35,7 +36,12 @@ export default async function TeachersPage({
 
   const query = readParam(params, "q");
   const page = readPage(params);
-  const { rows, total, pageSize } = await listTeachers({ query, page });
+
+  const [{ rows, total, pageSize }, subjects, sections] = await Promise.all([
+    listTeachers({ query, page }),
+    getSubjectOptions(),
+    getSectionOptions(),
+  ]);
 
   const columns: Column<TeacherListRow>[] = [
     {
@@ -110,7 +116,13 @@ export default async function TeachersPage({
       <PageHeader
         title="Teachers"
         description="Teaching staff and their assigned classes."
-        actions={<NewTeacherButton suggestedEmployeeId={suggestedEmployeeId} />}
+        actions={
+          <NewTeacherButton
+            suggestedEmployeeId={suggestedEmployeeId}
+            subjects={subjects.map((s) => ({ value: s.id, label: s.name }))}
+            sections={sections.map((s) => ({ value: s.id, label: s.label }))}
+          />
+        }
       />
 
       <FilterBar

@@ -227,59 +227,160 @@ export const createTeacher = withAction(
       });
     }
 
-    const password = generateTempPassword();
+    const year = await getCurrentAcademicYear();
+    if (input.assignments.length > 0 && !year) {
+      return actionError("Set up an academic year before assigning classes.", {
+        code: "NO_ACADEMIC_YEAR",
+      });
+    }
 
-    const teacher = await prisma.user.create({
-      data: {
-        cnic: encryptField(input.cnic),
-        cnicHash,
-        name: input.name,
-        email: input.email || null,
-        phone: input.phone ? normalizePhone(input.phone) : null,
-        phoneHash: input.phone ? blindIndex(normalizePhone(input.phone)) : null,
-        role: "TEACHER",
-        passwordHash: await hashPassword(password),
-        mustChangePassword: true,
-        teacherProfile: {
-          create: {
-            employeeId: input.employeeId,
-            qualification: input.qualification || null,
+    /*
+     * Validate every class before creating anything. A teacher account that
+     * exists but silently lost half its assignments is worse than a refusal
+     * — the principal would have no way to tell which ones took.
+     */
+    const uniqueAssignments = new Map<string, (typeof input.assignments)[number]>();
+    for (const assignment of input.assignments) {
+      uniqueAssignments.set(`${assignment.subjectId}:${assignment.sectionId}`, assignment);
+    }
+    const assignments = [...uniqueAssignments.values()];
+
+    if (assignments.length > 0 && year) {
+      const sectionIds = [...new Set(assignments.map((a) => a.sectionId))];
+      const validSections = await prisma.section.findMany({
+        where: { id: { in: sectionIds }, academicYearId: year.id },
+        select: { id: true },
+      });
+      if (validSections.length !== sectionIds.length) {
+        return actionError("One of those classes isn't in the current academic year.", {
+          code: "INVALID_SECTION",
+        });
+      }
+
+      /*
+       * A period for a brand-new teacher can still clash with an existing
+       * one — the class or the room may already be busy at that time. Check
+       * before the account exists, so a refusal leaves nothing behind.
+       */
+      for (const assignment of assignments) {
+        if (!assignment.dayOfWeek || !assignment.startTime || !assignment.endTime) continue;
+
+        const clash = await prisma.timetableSlot.findFirst({
+          where: {
+            dayOfWeek: assignment.dayOfWeek,
+            startTime: { lt: assignment.endTime },
+            endTime: { gt: assignment.startTime },
+            OR: [
+              { sectionId: assignment.sectionId },
+              ...(assignment.room ? [{ room: assignment.room }] : []),
+            ],
+          },
+          select: {
+            startTime: true,
+            endTime: true,
+            subject: { select: { name: true } },
+            section: { select: { name: true, class: { select: { name: true } } } },
+          },
+        });
+
+        if (clash) {
+          return actionError(
+            `${clash.section.class.name} — ${clash.section.name} already has ${clash.subject.name} at ${clash.startTime}–${clash.endTime}.`,
+            { code: "TIMETABLE_CONFLICT" }
+          );
+        }
+      }
+    }
+
+    const password = generateTempPassword();
+    const passwordHash = await hashPassword(password);
+
+    // The account, its profile, its classes and their periods are one unit.
+    const teacher = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          cnic: encryptField(input.cnic),
+          cnicHash,
+          name: input.name,
+          email: input.email || null,
+          phone: input.phone ? normalizePhone(input.phone) : null,
+          phoneHash: input.phone ? blindIndex(normalizePhone(input.phone)) : null,
+          role: "TEACHER",
+          passwordHash,
+          mustChangePassword: true,
+          teacherProfile: {
+            create: {
+              employeeId: input.employeeId,
+              qualification: input.qualification || null,
+            },
           },
         },
-      },
-      select: { id: true },
+        select: { id: true },
+      });
+
+      if (assignments.length > 0 && year) {
+        await tx.teacherSubjectAssignment.createMany({
+          data: assignments.map((assignment) => ({
+            teacherId: user.id,
+            subjectId: assignment.subjectId,
+            sectionId: assignment.sectionId,
+            academicYearId: year.id,
+          })),
+        });
+
+        const periods = assignments.filter(
+          (assignment) => assignment.dayOfWeek && assignment.startTime && assignment.endTime
+        );
+        if (periods.length > 0) {
+          await tx.timetableSlot.createMany({
+            data: periods.map((assignment) => ({
+              sectionId: assignment.sectionId,
+              subjectId: assignment.subjectId,
+              teacherId: user.id,
+              dayOfWeek: assignment.dayOfWeek as "MONDAY",
+              startTime: assignment.startTime as string,
+              endTime: assignment.endTime as string,
+              room: assignment.room || null,
+            })),
+          });
+        }
+      }
+
+      return user;
     });
+
+    const periodCount = assignments.filter((a) => a.dayOfWeek).length;
 
     await logAudit({
       actorId: ctx.user.id,
       action: "USER_CREATED",
       targetType: "User",
       targetId: teacher.id,
-      metadata: { role: "TEACHER", employeeId: input.employeeId },
+      metadata: {
+        role: "TEACHER",
+        employeeId: input.employeeId,
+        classesAssigned: assignments.length,
+        periodsScheduled: periodCount,
+      },
     });
 
     revalidatePath("/teachers");
+    revalidatePath("/settings/academic");
+    revalidatePath("/timetable");
+
+    const detail = assignments.length
+      ? ` Assigned ${assignments.length} class${assignments.length === 1 ? "" : "es"}${
+          periodCount ? ` and ${periodCount} timetable period${periodCount === 1 ? "" : "s"}` : ""
+        }.`
+      : "";
 
     return actionOk(
       { teacherId: teacher.id, credentials: { cnic: input.cnic, password } },
-      `${input.name} added to staff.`
+      `${input.name} added to staff.${detail}`
     );
   }
 );
 
-/**
- * Issues a new temporary password for someone who can't sign in.
- *
- * This is the reset path that actually gets used in a school: the
- * email-link route only works for accounts with an email on file, and in
- * practice that is staff only — every student and guardian is issued
- * credentials at the office. A parent who has forgotten their password
- * phones the school, and this is what the office does about it.
- *
- * The new password is returned once, for handover, and never stored in
- * readable form. Existing sessions are revoked, so a reset also serves as
- * "lock this account out now" when a login is suspected compromised.
- */
 export const resetUserPassword = withAction(
   { roles: ["PRINCIPAL"], input: z.object({ userId: z.string().min(1) }) },
   async (input, ctx) => {

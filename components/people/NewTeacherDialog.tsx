@@ -9,11 +9,22 @@ import { Dialog } from "@/components/ui/Dialog";
 import { InputField } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { CredentialHandover, type Credential } from "./CredentialHandover";
+import { TeacherAssignmentRows, EMPTY_ROW, type AssignmentRow } from "./TeacherAssignmentRows";
+import type { SelectOption } from "@/components/ui/Select";
 
-export function NewTeacherButton({ suggestedEmployeeId }: { suggestedEmployeeId: string }) {
+export function NewTeacherButton({
+  suggestedEmployeeId,
+  subjects,
+  sections,
+}: {
+  suggestedEmployeeId: string;
+  subjects: SelectOption[];
+  sections: SelectOption[];
+}) {
   const [open, setOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [issued, setIssued] = useState<Credential[] | null>(null);
+  const [rows, setRows] = useState<AssignmentRow[]>([{ ...EMPTY_ROW }]);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const toast = useToast();
@@ -22,6 +33,7 @@ export function NewTeacherButton({ suggestedEmployeeId }: { suggestedEmployeeId:
     setOpen(false);
     setFieldErrors({});
     setIssued(null);
+    setRows([{ ...EMPTY_ROW }]);
     if (issued) router.refresh();
   }
 
@@ -37,6 +49,18 @@ export function NewTeacherButton({ suggestedEmployeeId }: { suggestedEmployeeId:
         qualification: value("qualification"),
         email: value("email"),
         phone: value("phone"),
+        // Blank rows are the natural state of an untouched extra row, not
+        // an error worth stopping the whole submission for.
+        assignments: rows
+          .filter((row) => row.subjectId && row.sectionId)
+          .map((row) => ({
+            subjectId: row.subjectId,
+            sectionId: row.sectionId,
+            dayOfWeek: (row.dayOfWeek || "") as "",
+            startTime: row.startTime || "",
+            endTime: row.endTime || "",
+            room: row.room || "",
+          })),
       });
 
       if (result.ok) {
@@ -68,10 +92,10 @@ export function NewTeacherButton({ suggestedEmployeeId }: { suggestedEmployeeId:
         title={issued ? "Teacher added" : "Add a teacher"}
         description={
           issued
-            ? "Hand these sign-in details to the new member of staff."
-            : "Creates a staff account. Assign subjects and classes afterwards."
+            ? "Hand these sign-in details to the new member of staff. They'll see their assigned classes as soon as they sign in."
+            : "Creates the account and assigns their classes in one step."
         }
-        size="md"
+        size="lg"
         footer={
           issued ? (
             <Button onClick={close}>Done</Button>
@@ -90,7 +114,9 @@ export function NewTeacherButton({ suggestedEmployeeId }: { suggestedEmployeeId:
         {issued ? (
           <CredentialHandover credentials={issued} />
         ) : (
-          <form id="new-teacher" action={handleSubmit} className="flex flex-col gap-4">
+          <form id="new-teacher" action={handleSubmit} className="flex flex-col gap-5">
+            <fieldset className="flex flex-col gap-4">
+              <legend className="text-sm font-semibold text-fg">Staff details</legend>
             <div className="grid gap-4 sm:grid-cols-2">
               <InputField name="name" label="Full name" required error={fieldErrors.name} />
               <InputField
@@ -138,6 +164,21 @@ export function NewTeacherButton({ suggestedEmployeeId }: { suggestedEmployeeId:
                 error={fieldErrors.phone}
               />
             </div>
+            </fieldset>
+
+            <fieldset className="flex flex-col gap-3 border-t border-line pt-5">
+              <legend className="text-sm font-semibold text-fg">Classes</legend>
+              <p className="-mt-1 text-xs text-fg-subtle">
+                This is what the teacher can actually do: they can only take registers and enter
+                marks for the classes listed here.
+              </p>
+              <TeacherAssignmentRows
+                rows={rows}
+                onChange={setRows}
+                subjects={subjects}
+                sections={sections}
+              />
+            </fieldset>
           </form>
         )}
       </Dialog>
