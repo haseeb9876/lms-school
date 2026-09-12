@@ -49,6 +49,10 @@ const ROUTES: Record<Role, string[]> = {
     "/announcements",
     "/helpdesk",
     "/reports",
+    "/settings/academic",
+    "/settings/academic?tab=classes",
+    "/settings/academic?tab=subjects",
+    "/settings/academic?tab=staffing",
     "/principal/settings/branding",
     "/settings/security",
     "/settings/profile",
@@ -94,9 +98,9 @@ const ROUTES: Record<Role, string[]> = {
 
 /** Routes a role must NOT reach — a 200 here is an authorization hole. */
 const FORBIDDEN: Partial<Record<Role, string[]>> = {
-  TEACHER: ["/teachers", "/guardians", "/reports", "/principal/settings/branding"],
-  STUDENT: ["/students", "/teachers", "/guardians", "/classes", "/reports", "/principal/settings/branding"],
-  PARENT: ["/students", "/teachers", "/guardians", "/classes", "/reports", "/principal/settings/branding"],
+  TEACHER: ["/teachers", "/guardians", "/reports", "/settings/academic", "/principal/settings/branding"],
+  STUDENT: ["/students", "/teachers", "/guardians", "/classes", "/reports", "/settings/academic", "/principal/settings/branding"],
+  PARENT: ["/students", "/teachers", "/guardians", "/classes", "/reports", "/settings/academic", "/principal/settings/branding"],
 };
 
 /**
