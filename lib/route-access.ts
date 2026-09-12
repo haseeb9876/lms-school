@@ -53,6 +53,7 @@ export const ROUTE_RULES: RouteRule[] = [
   { prefix: "/attendance", roles: ALL },
   { prefix: "/timetable", roles: ALL },
   { prefix: "/announcements", roles: ALL },
+  { prefix: "/datesheets", roles: ALL },
   { prefix: "/helpdesk", roles: ALL },
   { prefix: "/settings", roles: ALL },
 ];

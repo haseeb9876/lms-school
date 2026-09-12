@@ -70,6 +70,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "My Attendance", href: "/attendance", icon: ClipboardCheck, roles: ["STUDENT"], matchPrefix: true },
       { label: "Assignments", href: "/assignments", icon: ScrollText, roles: ["PRINCIPAL", "TEACHER", "STUDENT"], matchPrefix: true },
       { label: "Exams & Results", href: "/exams", icon: FileBarChart, roles: ["PRINCIPAL", "TEACHER"], matchPrefix: true },
+      { label: "Exam Datesheets", href: "/datesheets", icon: CalendarDays, roles: ALL_ROLES, matchPrefix: true },
       { label: "My Results", href: "/results", icon: FileBarChart, roles: ["STUDENT", "PARENT"], matchPrefix: true },
     ],
   },

@@ -74,6 +74,7 @@ model User {
   assignmentsCreated  Assignment[]               @relation("AssignmentTeacher")
   submissionsGraded   Submission[]               @relation("SubmissionGradedBy")
   examsCreated        Exam[]                     @relation("ExamCreatedBy")
+  datesheetsCreated   ExamDatesheet[]            @relation("DatesheetCreatedBy")
   examResultsEntered  ExamResult[]               @relation("ExamResultEnteredBy")
   invoicesIssued      FeeInvoice[]               @relation("InvoiceIssuedBy")
   paymentsReceived    FeePayment[]               @relation("PaymentReceivedBy")
@@ -248,11 +249,12 @@ model AcademicYear {
   endDate   DateTime
   isCurrent Boolean  @default(false)
 
-  terms         Term[]
-  sections      Section[]
-  enrollments   Enrollment[]
-  assignments   TeacherSubjectAssignment[]
-  feeStructures FeeStructure[]
+  terms          Term[]
+  sections       Section[]
+  enrollments    Enrollment[]
+  assignments    TeacherSubjectAssignment[]
+  feeStructures  FeeStructure[]
+  examDatesheets ExamDatesheet[]
 }
 
 model Term {
@@ -263,8 +265,9 @@ model Term {
   startDate      DateTime
   endDate        DateTime
 
-  exams       Exam[]
-  feeInvoices FeeInvoice[]
+  exams          Exam[]
+  feeInvoices    FeeInvoice[]
+  examDatesheets ExamDatesheet[]
 
   @@unique([academicYearId, name])
 }
@@ -296,6 +299,7 @@ model Section {
   assignments        Assignment[]
   exams              Exam[]
   feeStructures      FeeStructure[]
+  examDatesheets     ExamDatesheet[]
 
   @@unique([classId, academicYearId, name])
   @@index([academicYearId])
@@ -331,6 +335,7 @@ model Subject {
   assignments        Assignment[]
   exams              Exam[]
   timetableSlots     TimetableSlot[]
+  datesheetEntries   ExamDatesheetEntry[]
 }
 
 // Single source of truth for "what can this teacher touch" — used by
@@ -497,6 +502,94 @@ model ExamResult {
 // Fees (manual/offline tracking; schema is gateway-ready but no gateway
 // integration code is written in this phase)
 // =========================================================================
+
+// =========================================================================
+// Examination datesheets
+// =========================================================================
+
+enum DatesheetStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// A published examination timetable.
+///
+/// Deliberately separate from `Exam`, which is one subject's paper for one
+/// class and exists to carry marks. A datesheet is the notice a school pins
+/// to the wall: it covers many classes and many papers at once, it is what
+/// parents photograph and keep, and it has to stay readable exactly as it
+/// was published even after the exams it describes are over.
+model ExamDatesheet {
+  id             String               @id @default(cuid())
+  title          String
+  academicYearId String
+  academicYear   AcademicYear         @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  termId         String?
+  term           Term?                @relation(fields: [termId], references: [id], onDelete: SetNull)
+  /// Reuses the announcement vocabulary so "one class and its guardians"
+  /// means the same thing here as it does for a notice.
+  audience       AnnouncementAudience @default(ALL)
+  sectionId      String?
+  section        Section?             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  /// First day of the examinations, for sorting and for the "upcoming"
+  /// badge. Derived from the entries when they exist, typed by hand when
+  /// the datesheet is only a photograph.
+  startsOn       DateTime?
+  notes          String?
+  status         DatesheetStatus      @default(DRAFT)
+  publishedAt    DateTime?
+  createdById    String
+  createdBy      User                 @relation("DatesheetCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  pages   ExamDatesheetPage[]
+  entries ExamDatesheetEntry[]
+
+  @@index([status, publishedAt])
+  @@index([academicYearId])
+}
+
+/// One photographed or scanned page of a datesheet.
+///
+/// Several, because a whole-school datesheet is rarely one sheet of paper —
+/// and asking a principal to stitch four photographs into one image before
+/// uploading is how a feature goes unused.
+model ExamDatesheetPage {
+  id          String        @id @default(cuid())
+  datesheetId String
+  datesheet   ExamDatesheet @relation(fields: [datesheetId], references: [id], onDelete: Cascade)
+  /// What `storage.save` returned. Never handed to the browser directly —
+  /// these are class-specific documents, so they are streamed through an
+  /// authenticated route that re-checks who is asking.
+  storageRef  String
+  caption     String?
+  sortOrder   Int           @default(0)
+
+  @@index([datesheetId])
+}
+
+/// One paper, when the datesheet is built on the portal instead of photographed.
+model ExamDatesheetEntry {
+  id          String        @id @default(cuid())
+  datesheetId String
+  datesheet   ExamDatesheet @relation(fields: [datesheetId], references: [id], onDelete: Cascade)
+  subjectId   String?
+  subject     Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  /// Stored as written, not looked up through the relation. A datesheet is
+  /// a historical record — renaming a subject next year must not silently
+  /// rewrite the notice parents were given last year.
+  subjectName String
+  examDate    DateTime
+  /// "09:00" — a wall-clock time, not an instant, so it survives any
+  /// timezone handling unchanged.
+  startTime   String?
+  endTime     String?
+  room        String?
+  sortOrder   Int           @default(0)
+
+  @@index([datesheetId, examDate])
+}
 
 enum FeeFrequency {
   MONTHLY

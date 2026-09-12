@@ -47,6 +47,7 @@ const ROUTES: Record<Role, string[]> = {
     "/fees",
     "/fees/invoices/:invoiceId",
     "/announcements",
+    "/datesheets",
     "/helpdesk",
     "/reports",
     "/settings/academic",

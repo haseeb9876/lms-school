@@ -5,6 +5,15 @@ import path from "node:path";
 export interface StorageDriver {
   /** Saves a file and returns the URL the app should link to. */
   save(key: string, file: Buffer, contentType: string): Promise<string>;
+  /**
+   * Reads a file back by whatever `save` returned.
+   *
+   * Needed because not every upload should be servable by URL. Branding
+   * images are public by nature; an examination datesheet for one class is
+   * not, so those are streamed through a route that re-checks the viewer
+   * rather than handed to the browser as a link anyone could forward.
+   */
+  read(reference: string): Promise<Buffer | null>;
   delete(url: string): Promise<void>;
 }
 
@@ -32,6 +41,22 @@ class LocalStorage implements StorageDriver {
     return `${LOCAL_FILE_PREFIX}${safeKey}`;
   }
 
+  async read(reference: string): Promise<Buffer | null> {
+    if (!reference.startsWith(LOCAL_FILE_PREFIX)) return null;
+    const key = sanitizeKey(reference.slice(LOCAL_FILE_PREFIX.length));
+    const target = path.join(UPLOAD_ROOT, key);
+
+    // Belt and braces over sanitizeKey: confirm the resolved path is still
+    // inside the upload root before opening it.
+    if (!path.resolve(target).startsWith(UPLOAD_ROOT + path.sep)) return null;
+
+    try {
+      return await fs.readFile(target);
+    } catch {
+      return null;
+    }
+  }
+
   async delete(url: string): Promise<void> {
     if (!url.startsWith(LOCAL_FILE_PREFIX)) return;
     const key = sanitizeKey(url.slice(LOCAL_FILE_PREFIX.length));
@@ -49,6 +74,18 @@ class VercelBlobStorage implements StorageDriver {
       addRandomSuffix: true,
     });
     return blob.url;
+  }
+
+  async read(reference: string): Promise<Buffer | null> {
+    // Fetched server-side so the blob URL itself never reaches the browser
+    // — on Vercel Blob a "public" URL is public to anyone holding it.
+    try {
+      const response = await fetch(reference);
+      if (!response.ok) return null;
+      return Buffer.from(await response.arrayBuffer());
+    } catch {
+      return null;
+    }
   }
 
   async delete(url: string): Promise<void> {
@@ -122,4 +159,14 @@ export const UPLOAD_LIMITS = {
     allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/avif"],
   },
   attachment: { maxBytes: 10 * 1024 * 1024, allowedMimeTypes: [] as string[] },
+  /**
+   * A photographed datesheet. Larger than a logo because it is a picture of
+   * a dense table that has to stay legible when a parent zooms in on a
+   * phone, and no SVG — these come from a camera, and an SVG upload is a
+   * script upload.
+   */
+  datesheet: {
+    maxBytes: 12 * 1024 * 1024,
+    allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/avif"],
+  },
 } as const;
