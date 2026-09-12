@@ -11,6 +11,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { NewAnnouncementButton } from "@/components/announcements/NewAnnouncementDialog";
+import { DeleteAnnouncementButton } from "@/components/announcements/DeleteAnnouncementButton";
 
 export const metadata: Metadata = { title: "Announcements" };
 
@@ -85,9 +86,14 @@ export default async function AnnouncementsPage({
                     </time>
                   </div>
                 </div>
-                <Badge variant="brand">
-                  {AUDIENCE_LABELS[announcement.audience] ?? humanizeEnum(announcement.audience)}
-                </Badge>
+                <div className="flex flex-none items-center gap-2">
+                  <Badge variant="brand">
+                    {AUDIENCE_LABELS[announcement.audience] ?? humanizeEnum(announcement.audience)}
+                  </Badge>
+                  {session.role === "PRINCIPAL" && (
+                    <DeleteAnnouncementButton id={announcement.id} title={announcement.title} />
+                  )}
+                </div>
               </div>
 
               <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">

@@ -98,7 +98,6 @@ export const storage: StorageDriver = process.env.BLOB_READ_WRITE_TOKEN
   ? new VercelBlobStorage()
   : new LocalStorage();
 
-export const usingLocalStorage = !process.env.BLOB_READ_WRITE_TOKEN;
 
 /** A collision-free filename that keeps the original extension. */
 export function uploadKey(folder: string, extension: string): string {

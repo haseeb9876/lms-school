@@ -47,9 +47,3 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-/** Reads and resets the query counter. Only meaningful with the flag on. */
-export function takeQueryCount(): number {
-  const count = globalForPrisma.prismaQueryCount ?? 0;
-  globalForPrisma.prismaQueryCount = 0;
-  return count;
-}

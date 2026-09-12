@@ -125,13 +125,6 @@ export async function assertCanMarkAttendance(session: SessionLike, sectionId: s
   throw new ApiError(403, "You are not assigned to this section.", "NOT_YOUR_SECTION");
 }
 
-/** Fee edits (invoices, payments, structures) are principal-only for now. */
-export function assertIsPrincipal(session: SessionLike): void {
-  if (session.role !== "PRINCIPAL") {
-    throw new ApiError(403, "Only the principal can do that.", "PRINCIPAL_ONLY");
-  }
-}
-
 /** Resolves the set of student ids a parent/student session is allowed to see. */
 export async function resolveVisibleStudentIds(session: SessionLike): Promise<string[] | "ALL"> {
   if (session.role === "PRINCIPAL" || session.role === "TEACHER") return "ALL";

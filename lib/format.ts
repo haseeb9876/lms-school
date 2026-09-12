@@ -44,8 +44,6 @@ const currencyFormatter = new Intl.NumberFormat(LOCALE, {
   maximumFractionDigits: 0,
 });
 
-const numberFormatter = new Intl.NumberFormat(LOCALE);
-
 export function formatDate(value: Date | string): string {
   return dateFormatter.format(new Date(value));
 }
@@ -64,10 +62,6 @@ export function formatWeekday(value: Date | string): string {
 
 export function formatCurrency(amount: number): string {
   return currencyFormatter.format(amount);
-}
-
-export function formatNumber(value: number): string {
-  return numberFormatter.format(value);
 }
 
 export function formatPercent(value: number, digits = 1): string {

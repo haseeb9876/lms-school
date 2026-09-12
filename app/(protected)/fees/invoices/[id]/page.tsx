@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { InvoiceStatusBadge } from "@/components/fees/InvoiceStatusBadge";
 import { RecordPaymentButton } from "@/components/fees/RecordPaymentDialog";
+import { CancelInvoiceButton } from "@/components/fees/CancelInvoiceButton";
 
 export async function generateMetadata({
   params,
@@ -77,6 +78,17 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             {session.role === "PRINCIPAL" && (
               <RecordPaymentButton invoiceId={invoice.id} balance={balance} />
             )}
+            {/* Only while nothing has been paid — cancelling an invoice with
+                payments against it would strand them. */}
+            {session.role === "PRINCIPAL" &&
+              invoice.payments.length === 0 &&
+              invoice.status !== "CANCELLED" && (
+                <CancelInvoiceButton
+                  invoiceId={invoice.id}
+                  invoiceNumber={invoice.invoiceNumber}
+                  studentName={invoice.student.user.name}
+                />
+              )}
           </div>
         }
       />

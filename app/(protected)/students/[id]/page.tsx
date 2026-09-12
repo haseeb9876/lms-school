@@ -27,6 +27,7 @@ import { ProgressRing, toneForPercent } from "@/components/ui/Progress";
 import { StudentStatusBadge } from "@/components/students/StudentStatusBadge";
 import { AttendanceStatusBadge } from "@/components/attendance/AttendanceStatusBadge";
 import { InvoiceStatusBadge } from "@/components/fees/InvoiceStatusBadge";
+import { UserStatusButton } from "@/components/people/UserStatusButton";
 
 const TABS = ["overview", "attendance", "results", "fees"] as const;
 type Tab = (typeof TABS)[number];
@@ -103,6 +104,15 @@ export default async function StudentDetailPage({
         breadcrumbs={[{ label: "Students", href: "/students" }, { label: student.user.name }]}
         title={student.user.name}
         description={`${student.admissionNumber} · ${sectionLabel}`}
+        actions={
+          session.role === "PRINCIPAL" ? (
+            <UserStatusButton
+              userId={student.user.id}
+              name={student.user.name}
+              status={student.user.status}
+            />
+          ) : undefined
+        }
       />
 
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-line bg-surface-raised p-5 shadow-soft">

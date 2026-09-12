@@ -32,8 +32,3 @@ export async function requireAuth(allowedRoles?: Role[]): Promise<SessionInfo> {
   return session;
 }
 
-export async function getCurrentUser() {
-  const session = await getCurrentSession();
-  if (!session) return null;
-  return prisma.user.findUnique({ where: { id: session.userId } });
-}

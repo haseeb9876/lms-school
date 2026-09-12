@@ -13,7 +13,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { StatCard } from "@/components/ui/StatCard";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { InvoiceStatusBadge } from "@/components/fees/InvoiceStatusBadge";
-import { GenerateInvoicesButton, SetFeeButton } from "@/components/fees/FeeSetupDialogs";
+import { GenerateInvoicesButton, NewFeeCategoryButton, SetFeeButton } from "@/components/fees/FeeSetupDialogs";
 import { getTermOptions } from "@/lib/queries/exams";
 import { prisma } from "@/lib/db";
 
@@ -105,6 +105,7 @@ export default async function FeesPage({
         actions={
           isPrincipal ? (
             <div className="flex flex-wrap gap-2">
+              <NewFeeCategoryButton />
               <SetFeeButton
                 sections={sections.map((s) => ({ value: s.id, label: s.label }))}
                 categories={categories.map((c) => ({ value: c.id, label: c.name }))}

@@ -1,7 +1,7 @@
 "use client";
 
-import { Receipt, Settings2 } from "lucide-react";
-import { createFeeStructure, generateInvoices } from "@/lib/actions/fee-setup";
+import { Plus, Receipt, Settings2 } from "lucide-react";
+import { createFeeCategory, createFeeStructure, generateInvoices } from "@/lib/actions/fee-setup";
 import { FormDialog } from "@/components/ui/FormDialog";
 import { InputField } from "@/components/ui/Input";
 import { SelectField } from "@/components/ui/Select";
@@ -163,6 +163,34 @@ export function GenerateInvoicesButton({
             error={errors.note}
           />
         </>
+      )}
+    </FormDialog>
+  );
+}
+
+/**
+ * Fee types (Tuition, Transport, Examination…). A fresh school has none, and
+ * without at least one there is nothing for a class fee to be an amount *of*.
+ */
+export function NewFeeCategoryButton() {
+  return (
+    <FormDialog
+      trigger={{ label: "Add fee type", icon: Plus, variant: "secondary" }}
+      title="Add a fee type"
+      description="What the charge is for — tuition, transport, examination, and so on."
+      submitLabel="Add fee type"
+      formId="new-fee-category"
+      size="sm"
+      action={(formData) => createFeeCategory({ name: String(formData.get("name") ?? "") })}
+    >
+      {(errors) => (
+        <InputField
+          name="name"
+          label="Fee type"
+          required
+          placeholder="Tuition Fee"
+          error={errors.name}
+        />
       )}
     </FormDialog>
   );

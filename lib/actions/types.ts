@@ -13,9 +13,6 @@ export type ActionResult<TData = undefined> =
   | { ok: true; data: TData; message?: string }
   | { ok: false; error: string; code?: string; fieldErrors?: Record<string, string> };
 
-/** Initial state for `useActionState` — nothing submitted yet. */
-export const IDLE_ACTION_STATE = { ok: true as const, data: undefined };
-
 export function actionOk(): ActionResult<undefined>;
 export function actionOk<TData>(data: TData, message?: string): ActionResult<TData>;
 export function actionOk<TData>(data?: TData, message?: string): ActionResult<TData | undefined> {

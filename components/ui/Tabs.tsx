@@ -50,37 +50,3 @@ export function Tabs({ items, current, className }: { items: TabItem[]; current:
   );
 }
 
-/**
- * Compact pill switcher for narrow filters (a date range, a status filter)
- * where a full underlined tab bar would be visually heavy.
- */
-export function SegmentedControl({
-  items,
-  current,
-  className,
-}: {
-  items: { label: string; href: string }[];
-  current: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn("inline-flex items-center gap-0.5 rounded-lg border border-line bg-surface-sunken p-0.5", className)}>
-      {items.map((item) => {
-        const active = item.href === current;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
-              active ? "bg-surface text-fg shadow-soft" : "text-fg-subtle hover:text-fg"
-            )}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}

@@ -8,6 +8,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserStatusButton } from "@/components/people/UserStatusButton";
 import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -69,6 +70,7 @@ export default async function TeacherDetailPage({ params }: { params: Promise<{ 
         breadcrumbs={[{ label: "Teachers", href: "/teachers" }, { label: teacher.name }]}
         title={teacher.name}
         description={teacher.teacherProfile?.employeeId ?? "Teaching staff"}
+        actions={<UserStatusButton userId={teacher.id} name={teacher.name} status={teacher.status} />}
       />
 
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-line bg-surface-raised p-5 shadow-soft">

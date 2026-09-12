@@ -27,7 +27,7 @@ const SIZES: Record<ButtonSize, string> = {
   icon: "h-9 w-9",
 };
 
-export function buttonVariants(opts: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}): string {
+function buttonVariants(opts: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}): string {
   const { variant = "primary", size = "md", className } = opts;
   return cn(BASE, VARIANTS[variant], SIZES[size], className);
 }
