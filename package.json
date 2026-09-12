@@ -20,7 +20,8 @@
     "smoke": "tsx scripts/smoke-check.ts",
     "rbac": "tsx scripts/rbac-check.ts",
     "dev:queries": "PRISMA_LOG_QUERIES=1 next dev",
-    "sessions": "tsx scripts/session-check.ts"
+    "sessions": "tsx scripts/session-check.ts",
+    "recovery": "tsx scripts/recovery-check.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

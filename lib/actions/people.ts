@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { hashPassword } from "@/lib/crypto/passwords";
 import { generateTempPassword } from "@/lib/crypto/temp-password";
+import { resetAccountPassword } from "@/lib/password-reset";
 import { blindIndex, decryptField, encryptField } from "@/lib/crypto/encryption";
 import { normalizePhone } from "@/lib/crypto/identifiers";
 import { getCurrentAcademicYear } from "@/lib/queries/academics";
@@ -398,24 +399,10 @@ export const resetUserPassword = withAction(
 
     const password = generateTempPassword();
 
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: user.id },
-        data: { passwordHash: await hashPassword(password), mustChangePassword: true },
-      }),
-      // Any live session is ended: a reset must take effect immediately,
-      // not whenever the current access token happens to expire.
-      prisma.session.updateMany({
-        where: { userId: user.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-      // Outstanding email reset links are void too, or an old link could
-      // still be used to set a different password afterwards.
-      prisma.passwordResetToken.updateMany({
-        where: { userId: user.id, usedAt: null },
-        data: { usedAt: new Date() },
-      }),
-    ]);
+    // Shared with the password desk, so "reset" means the same three things
+    // — new hash, every session ended, every outstanding link voided —
+    // wherever it is triggered from.
+    await resetAccountPassword(user.id, password, { mustChange: true });
 
     await logAudit({
       actorId: ctx.user.id,
