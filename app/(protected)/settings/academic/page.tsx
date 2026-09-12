@@ -3,7 +3,7 @@ import { BookOpen, CalendarRange, Layers, UserSquare } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/db";
 import { getCurrentAcademicYear } from "@/lib/queries/academics";
-import { readEnum, type RawSearchParams } from "@/lib/search-params";
+import { readEnum, readParam, type RawSearchParams } from "@/lib/search-params";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs } from "@/components/ui/Tabs";
@@ -20,6 +20,9 @@ import {
   NewYearButton,
 } from "@/components/academics/SetupDialogs";
 import { RemoveAssignmentButton } from "@/components/academics/RemoveAssignmentButton";
+import { EditAssignmentDialog } from "@/components/academics/EditAssignmentDialog";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 export const metadata: Metadata = { title: "Academic Setup" };
 
@@ -40,7 +43,16 @@ export default async function AcademicSetupPage({
   searchParams: Promise<RawSearchParams>;
 }) {
   await requireAuth(["PRINCIPAL"]);
-  const tab: Tab = readEnum(await searchParams, "tab", TABS) ?? "year";
+  const params = await searchParams;
+  const tab: Tab = readEnum(params, "tab", TABS) ?? "year";
+
+  // Staffing filters. "Which teachers take Grade 1?" is the question this
+  // screen exists to answer, and a flat list of every assignment in the
+  // school can't answer it once there are more than a handful of classes.
+  const filterSectionId = readParam(params, "section");
+  const filterTeacherId = readParam(params, "teacher");
+  const filterSubjectId = readParam(params, "subject");
+  const staffingQuery = readParam(params, "q");
 
   const currentYear = await getCurrentAcademicYear();
 
@@ -92,10 +104,21 @@ export default async function AcademicSetupPage({
       : Promise.resolve([]),
     currentYear
       ? prisma.teacherSubjectAssignment.findMany({
-          where: { academicYearId: currentYear.id },
+          where: {
+            academicYearId: currentYear.id,
+            ...(filterSectionId ? { sectionId: filterSectionId } : {}),
+            ...(filterTeacherId ? { teacherId: filterTeacherId } : {}),
+            ...(filterSubjectId ? { subjectId: filterSubjectId } : {}),
+            ...(staffingQuery
+              ? { teacher: { name: { contains: staffingQuery, mode: "insensitive" } } }
+              : {}),
+          },
           orderBy: [{ section: { class: { sortOrder: "asc" } } }, { section: { name: "asc" } }],
           select: {
             id: true,
+            teacherId: true,
+            subjectId: true,
+            sectionId: true,
             teacher: { select: { name: true } },
             subject: { select: { name: true } },
             section: { select: { name: true, class: { select: { name: true } } } },
@@ -103,6 +126,30 @@ export default async function AcademicSetupPage({
         })
       : Promise.resolve([]),
   ]);
+
+  /*
+   * How many timetable periods hang off each assignment. The edit dialog
+   * needs this to tell the principal what moves with the teacher — one
+   * grouped query rather than a count per row.
+   */
+  const periodGroups =
+    tab === "staffing" && assignments.length > 0
+      ? await prisma.timetableSlot.groupBy({
+          by: ["teacherId", "subjectId", "sectionId"],
+          where: { sectionId: { in: [...new Set(assignments.map((a) => a.sectionId))] } },
+          _count: { _all: true },
+        })
+      : [];
+  const periodCounts = new Map(
+    periodGroups.map((group) => [
+      `${group.teacherId}:${group.subjectId}:${group.sectionId}`,
+      group._count._all,
+    ])
+  );
+
+  const staffingFiltered = Boolean(
+    filterSectionId || filterTeacherId || filterSubjectId || staffingQuery
+  );
 
   const base = "/settings/academic";
   const tabHref = (value: Tab) => (value === "year" ? base : `${base}?tab=${value}`);
@@ -314,6 +361,34 @@ export default async function AcademicSetupPage({
             )}
           </div>
 
+          <FilterBar
+            search={<SearchInput placeholder="Search teachers…" className="w-full sm:max-w-xs" />}
+            filters={[
+              {
+                name: "section",
+                label: "Class",
+                value: filterSectionId,
+                placeholder: "All classes",
+                options: sectionOptions,
+              },
+              {
+                name: "teacher",
+                label: "Teacher",
+                value: filterTeacherId,
+                placeholder: "All teachers",
+                options: teacherOptions,
+              },
+              {
+                name: "subject",
+                label: "Subject",
+                value: filterSubjectId,
+                placeholder: "All subjects",
+                options: subjectOptions,
+              },
+            ]}
+            clearHref={staffingFiltered ? `${base}?tab=staffing` : undefined}
+          />
+
           <DataTable
             rows={assignments}
             getRowKey={(row) => row.id}
@@ -327,24 +402,51 @@ export default async function AcademicSetupPage({
                 cell: (row) => `${row.section.class.name} — ${row.section.name}`,
               },
               {
-                key: "remove",
+                key: "periods",
+                header: "Periods",
+                numeric: true,
+                hideOnMobile: true,
+                cell: (row) => periodCounts.get(`${row.teacherId}:${row.subjectId}:${row.sectionId}`) ?? 0,
+              },
+              {
+                key: "actions",
                 header: "",
                 align: "right",
                 cell: (row) => (
-                  <RemoveAssignmentButton
-                    assignmentId={row.id}
-                    teacherName={row.teacher.name}
-                    subjectName={row.subject.name}
-                    sectionLabel={`${row.section.class.name} — ${row.section.name}`}
-                  />
+                  <div className="flex items-center justify-end gap-0.5">
+                    <EditAssignmentDialog
+                      assignmentId={row.id}
+                      current={{
+                        teacherId: row.teacherId,
+                        subjectId: row.subjectId,
+                        sectionId: row.sectionId,
+                      }}
+                      teachers={teacherOptions}
+                      subjects={subjectOptions}
+                      sections={sectionOptions}
+                      periodCount={
+                        periodCounts.get(`${row.teacherId}:${row.subjectId}:${row.sectionId}`) ?? 0
+                      }
+                    />
+                    <RemoveAssignmentButton
+                      assignmentId={row.id}
+                      teacherName={row.teacher.name}
+                      subjectName={row.subject.name}
+                      sectionLabel={`${row.section.class.name} — ${row.section.name}`}
+                    />
+                  </div>
                 ),
               },
             ]}
             empty={
               <EmptyState
                 icon={UserSquare}
-                title="No teaching assignments"
-                description="Assign teachers to subjects and classes so they can take registers and enter marks."
+                title={staffingFiltered ? "No assignments match these filters" : "No teaching assignments"}
+                description={
+                  staffingFiltered
+                    ? "Try a different class, teacher or subject."
+                    : "Assign teachers to subjects and classes so they can take registers and enter marks."
+                }
               />
             }
           />

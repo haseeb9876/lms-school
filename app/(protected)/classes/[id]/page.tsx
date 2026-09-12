@@ -18,6 +18,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { StudentStatusBadge } from "@/components/students/StudentStatusBadge";
 import { TimetableGrid, currentDayOfWeek } from "@/components/timetable/TimetableGrid";
+import { TimetableEditor } from "@/components/timetable/TimetableEditor";
 
 const TABS = ["students", "subjects", "timetable"] as const;
 type Tab = (typeof TABS)[number];
@@ -197,20 +198,45 @@ export default async function ClassDetailPage({
         />
       )}
 
-      {tab === "timetable" && (
-        <TimetableGrid
-          highlightDay={currentDayOfWeek()}
-          entries={section.timetableSlots.map((slot) => ({
-            id: slot.id,
-            dayOfWeek: slot.dayOfWeek,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            room: slot.room,
-            subjectName: slot.subject.name,
-            teacherName: slot.teacher.name,
-          }))}
-        />
-      )}
+      {tab === "timetable" &&
+        (session.role === "PRINCIPAL" ? (
+          // The principal builds the timetable; everyone else reads it.
+          <TimetableEditor
+            sectionId={id}
+            assignments={section.teacherAssignments.map((assignment) => ({
+              id: assignment.id,
+              sectionId: id,
+              subjectId: assignment.subject.id,
+              teacherId: assignment.teacher.id,
+              label: `${label} · ${assignment.subject.name} · ${assignment.teacher.name}`,
+            }))}
+            periods={section.timetableSlots.map((slot) => ({
+              id: slot.id,
+              sectionId: id,
+              subjectId: slot.subject.id,
+              teacherId: slot.teacher.id,
+              dayOfWeek: slot.dayOfWeek,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              room: slot.room,
+              subjectName: slot.subject.name,
+              teacherName: slot.teacher.name,
+            }))}
+          />
+        ) : (
+          <TimetableGrid
+            highlightDay={currentDayOfWeek()}
+            entries={section.timetableSlots.map((slot) => ({
+              id: slot.id,
+              dayOfWeek: slot.dayOfWeek,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              room: slot.room,
+              subjectName: slot.subject.name,
+              teacherName: slot.teacher.name,
+            }))}
+          />
+        ))}
     </div>
   );
 }

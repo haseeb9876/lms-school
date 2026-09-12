@@ -88,7 +88,7 @@ export async function getClassDetail(sectionId: string) {
           startTime: true,
           endTime: true,
           room: true,
-          subject: { select: { name: true, code: true } },
+          subject: { select: { id: true, name: true, code: true } },
           teacher: { select: { id: true, name: true } },
         },
       },
