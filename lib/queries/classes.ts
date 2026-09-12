@@ -110,29 +110,3 @@ export async function getClassDetail(sectionId: string) {
   return { ...section, roster };
 }
 
-/** Per-student attendance percentages for one section's roster. */
-export async function getSectionAttendanceByStudent(
-  studentIds: string[]
-): Promise<Map<string, number>> {
-  if (studentIds.length === 0) return new Map();
-
-  const groups = await prisma.attendanceRecord.groupBy({
-    by: ["studentId", "status"],
-    where: { studentId: { in: studentIds } },
-    _count: { _all: true },
-  });
-
-  const tally = new Map<string, { present: number; total: number }>();
-  for (const group of groups) {
-    const entry = tally.get(group.studentId) ?? { present: 0, total: 0 };
-    entry.total += group._count._all;
-    if (group.status === "PRESENT" || group.status === "LATE") entry.present += group._count._all;
-    tally.set(group.studentId, entry);
-  }
-
-  const percentages = new Map<string, number>();
-  for (const [studentId, { present, total }] of tally) {
-    if (total > 0) percentages.set(studentId, (present / total) * 100);
-  }
-  return percentages;
-}

@@ -4,7 +4,8 @@ import { BookOpen, ClipboardCheck, Users } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertTeachesSection } from "@/lib/auth/rbac";
 import { guardPage } from "@/lib/auth/page-guards";
-import { getClassDetail, getSectionAttendanceByStudent } from "@/lib/queries/classes";
+import { getClassDetail } from "@/lib/queries/classes";
+import { getAttendancePercentByStudent } from "@/lib/queries/analytics";
 import { readEnum, type RawSearchParams } from "@/lib/search-params";
 import { formatPercent, todaySchoolDate } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -48,7 +49,7 @@ export default async function ClassDetailPage({
   const section = await getClassDetail(id);
   const label = `${section.class.name} — ${section.name}`;
 
-  const attendanceByStudent = await getSectionAttendanceByStudent(
+  const attendanceByStudent = await getAttendancePercentByStudent(
     section.roster.map((student) => student.id)
   );
 

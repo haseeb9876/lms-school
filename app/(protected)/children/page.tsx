@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CalendarCheck, FileBarChart, Users, Wallet } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { getChildrenForParent } from "@/lib/queries/timetable";
-import { getSectionAttendanceByStudent } from "@/lib/queries/classes";
+import { getAttendancePercentByStudent } from "@/lib/queries/analytics";
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatPercent, humanizeEnum } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -36,7 +36,7 @@ export default async function ChildrenPage() {
   // Attendance, outstanding fees and latest results for all children in
   // three grouped queries rather than three per child.
   const [attendance, invoiceGroups, resultGroups] = await Promise.all([
-    getSectionAttendanceByStudent(studentIds),
+    getAttendancePercentByStudent(studentIds),
     prisma.feeInvoice.groupBy({
       by: ["studentId"],
       where: { studentId: { in: studentIds }, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },

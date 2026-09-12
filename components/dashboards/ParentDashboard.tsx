@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CalendarCheck, Megaphone, Users, Wallet } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getChildrenForParent } from "@/lib/queries/timetable";
-import { getSectionAttendanceByStudent } from "@/lib/queries/classes";
+import { getAttendancePercentByStudent } from "@/lib/queries/analytics";
 import { getRecentAnnouncements } from "@/lib/queries/announcements";
 import { formatCurrency, formatPercent, formatRelativeTime } from "@/lib/format";
 import { StatCard } from "@/components/ui/StatCard";
@@ -38,7 +38,7 @@ export async function ParentDashboard({
   const studentIds = children.map((child) => child.id);
 
   const [attendance, invoiceGroups, announcements, recentResults] = await Promise.all([
-    getSectionAttendanceByStudent(studentIds),
+    getAttendancePercentByStudent(studentIds),
     prisma.feeInvoice.groupBy({
       by: ["studentId"],
       where: { studentId: { in: studentIds }, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },

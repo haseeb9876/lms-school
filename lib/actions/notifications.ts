@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { getNotificationFeed } from "@/lib/notifications";
 import { withAction } from "./with-action";
 import { actionOk } from "./types";
 
@@ -24,6 +25,19 @@ export const markNotificationRead = withAction(
     return actionOk();
   }
 );
+
+/**
+ * Loads the bell's list on demand.
+ *
+ * Deliberately not fetched with the shell: the list is only needed when
+ * someone opens the bell, whereas the shell renders on every navigation.
+ * Fetching it up front put a database round trip in front of every click to
+ * populate a panel that usually never opens.
+ */
+export const loadNotifications = withAction({ roles: null }, async (_input, ctx) => {
+  const feed = await getNotificationFeed(ctx.user.id);
+  return actionOk(feed);
+});
 
 export const markAllNotificationsRead = withAction({ roles: null }, async (_input, ctx) => {
   const { count } = await prisma.notification.updateMany({

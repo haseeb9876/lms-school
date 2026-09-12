@@ -7,7 +7,6 @@ import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
 import { readableTextColor } from "@/lib/color";
 import type { BrandingSettings } from "@/lib/branding";
-import type { NotificationFeed } from "@/lib/notifications";
 
 /**
  * The single shell used for every role — nav items are filtered from one
@@ -18,13 +17,13 @@ export function AppShell({
   role,
   userName,
   branding,
-  notifications,
+  unreadCount,
   children,
 }: {
   role: Role;
   userName: string;
   branding: BrandingSettings;
-  notifications: NotificationFeed;
+  unreadCount: number;
   children: ReactNode;
 }) {
   const mark = branding.logoUrl ? (
@@ -78,7 +77,7 @@ export function AppShell({
           </Link>
 
           <div className="ml-auto flex items-center gap-1">
-            <NotificationBell feed={notifications} />
+            <NotificationBell unreadCount={unreadCount} />
           </div>
         </header>
 

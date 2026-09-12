@@ -217,63 +217,6 @@ export async function getInvoiceDetail(invoiceId: string) {
   return invoice;
 }
 
-/** Students with the largest unpaid balances — the collections worklist. */
-export async function getFeeDefaulters(limit = 10) {
-  const invoices = await prisma.feeInvoice.findMany({
-    where: { status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
-    select: {
-      studentId: true,
-      totalAmount: true,
-      dueDate: true,
-      payments: { select: { amountPaid: true } },
-      student: {
-        select: {
-          user: { select: { name: true } },
-          enrollments: {
-            take: 1,
-            orderBy: { createdAt: "desc" },
-            select: { section: { select: { name: true, class: { select: { name: true } } } } },
-          },
-        },
-      },
-    },
-  });
-
-  const byStudent = new Map<
-    string,
-    { name: string; label: string; balance: number; invoiceCount: number; oldestDue: Date }
-  >();
-
-  for (const invoice of invoices) {
-    const paid = invoice.payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
-    const balance = invoice.totalAmount - paid;
-    if (balance <= 0) continue;
-
-    const enrollment = invoice.student.enrollments[0];
-    const existing = byStudent.get(invoice.studentId);
-
-    if (existing) {
-      existing.balance += balance;
-      existing.invoiceCount += 1;
-      if (invoice.dueDate < existing.oldestDue) existing.oldestDue = invoice.dueDate;
-    } else {
-      byStudent.set(invoice.studentId, {
-        name: invoice.student.user.name,
-        label: enrollment
-          ? `${enrollment.section.class.name} — ${enrollment.section.name}`
-          : "—",
-        balance,
-        invoiceCount: 1,
-        oldestDue: invoice.dueDate,
-      });
-    }
-  }
-
-  return [...byStudent.entries()]
-    .map(([studentId, entry]) => ({ studentId, ...entry }))
-    .sort((a, b) => b.balance - a.balance)
-    .slice(0, limit);
-}
 
 /** Monthly collected-versus-billed totals for the fees chart. */
 export async function getCollectionTrend(months = 6) {

@@ -86,6 +86,8 @@ model User {
 
   @@index([role])
   @@index([status])
+  // The people directories order and search by name across every user.
+  @@index([name])
 }
 
 // DB-backed refresh sessions — enables logout-everywhere and admin-forced logout.
@@ -275,6 +277,8 @@ model Section {
   feeStructures      FeeStructure[]
 
   @@unique([classId, academicYearId, name])
+  @@index([academicYearId])
+  @@index([classTeacherId])
 }
 
 // Historical record — a student's section per academic year. Needed for
@@ -292,6 +296,8 @@ model Enrollment {
 
   @@unique([studentId, academicYearId])
   @@index([sectionId])
+  @@index([academicYearId])
+  @@index([sectionId, academicYearId, status])
 }
 
 model Subject {
@@ -376,6 +382,8 @@ model AttendanceRecord {
 
   @@unique([studentId, date])
   @@index([sectionId, date])
+  // Date-windowed analytics scan by date without a section filter.
+  @@index([date])
 }
 
 model Assignment {
@@ -396,6 +404,8 @@ model Assignment {
   submissions Submission[]
 
   @@index([sectionId])
+  @@index([teacherId])
+  @@index([dueDate])
 }
 
 enum SubmissionStatus {
@@ -422,6 +432,7 @@ model Submission {
 
   @@unique([assignmentId, studentId])
   @@index([studentId])
+  @@index([assignmentId, status])
 }
 
 model Exam {
@@ -530,6 +541,8 @@ model FeeInvoice {
   payments FeePayment[]
 
   @@index([studentId, status])
+  @@index([status])
+  @@index([dueDate])
 }
 
 enum PaymentMethod {
