@@ -6,7 +6,7 @@ import { MobileTabBar } from "./MobileTabBar";
 import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
 import { NotificationWatcher } from "./NotificationWatcher";
-import { readableTextColor } from "@/lib/color";
+import { BrandMark } from "@/components/branding/BrandMark";
 import type { BrandingSettings } from "@/lib/branding";
 import type { DeviceClass } from "@/lib/auth/session";
 
@@ -34,17 +34,13 @@ export function AppShell({
   device: DeviceClass;
   children: ReactNode;
 }) {
-  const mark = branding.logoUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={branding.logoUrl} alt="" aria-hidden="true" className="h-8 w-8 flex-none rounded-md object-cover" />
-  ) : (
-    <div
-      aria-hidden="true"
-      className="flex h-8 w-8 flex-none items-center justify-center rounded-md text-sm font-bold"
-      style={{ background: branding.primaryColor, color: readableTextColor(branding.primaryColor) }}
-    >
-      {branding.schoolName.charAt(0).toUpperCase()}
-    </div>
+  const mark = (
+    <BrandMark
+      logoUrl={branding.logoUrl}
+      schoolName={branding.schoolName}
+      primaryColor={branding.primaryColor}
+      size="sm"
+    />
   );
 
   return (
