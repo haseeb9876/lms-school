@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChevronsUpDown, LogOut, ShieldCheck, User } from "lucide-react";
+import { ChevronsUpDown, ShieldCheck, User } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { SignOutControl } from "./SignOutControl";
+import type { DeviceClass } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -15,10 +16,16 @@ const ROLE_LABELS: Record<string, string> = {
   PARENT: "Guardian",
 };
 
-export function UserMenu({ name, role }: { name: string; role: string }) {
-  const router = useRouter();
+export function UserMenu({
+  name,
+  role,
+  device,
+}: {
+  name: string;
+  role: string;
+  device: DeviceClass;
+}) {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,18 +43,6 @@ export function UserMenu({ name, role }: { name: string; role: string }) {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
-
-  async function handleLogout() {
-    setLoading(true);
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      // router.refresh() clears the cached Server Component tree — without
-      // it the signed-in shell can persist behind the login page.
-      router.push("/login");
-      router.refresh();
-    }
-  }
 
   return (
     <div ref={containerRef} className="relative">
@@ -106,16 +101,7 @@ export function UserMenu({ name, role }: { name: string; role: string }) {
           </div>
 
           <div className="border-t border-line p-1">
-            <button
-              type="button"
-              role="menuitem"
-              onClick={handleLogout}
-              disabled={loading}
-              className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-danger transition-colors hover:bg-danger-soft disabled:opacity-50"
-            >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              {loading ? "Signing out…" : "Sign out"}
-            </button>
+            <SignOutControl device={device} onDone={() => setOpen(false)} />
           </div>
         </div>
       )}

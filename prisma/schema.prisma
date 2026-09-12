@@ -92,18 +92,38 @@ model User {
 }
 
 // DB-backed refresh sessions — enables logout-everywhere and admin-forced logout.
+enum DeviceClass {
+  DESKTOP
+  MOBILE
+}
+
 model Session {
-  id               String    @id @default(cuid())
-  userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshTokenHash String    @unique
-  userAgent        String?
-  ip               String?
-  createdAt        DateTime  @default(now())
-  expiresAt        DateTime
-  revokedAt        DateTime?
+  id                String      @id @default(cuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash  String      @unique
+  userAgent         String?
+  ip                String?
+  createdAt         DateTime    @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  /// What kind of device signed in. Desktop sessions are capped at 24
+  /// hours; phones stay signed in until the person taps Log out.
+  deviceClass       DeviceClass @default(DESKTOP)
+  /// The hard deadline a desktop session can never be renewed past. Null
+  /// on phones, which have no cap — that is the whole point of the phone
+  /// policy, so it is represented as an absent deadline rather than a
+  /// distant one that would quietly expire someone in a year's time.
+  absoluteExpiresAt DateTime?
+  /// Rolled forward on every token rotation, so the device list can show
+  /// "last active" rather than only when the session began.
+  lastSeenAt        DateTime    @default(now())
+  /// Carried across rotations so the device list keeps one stable identity
+  /// per browser, instead of appearing to be a new device every 15 minutes.
+  chainId           String?
 
   @@index([userId])
+  @@index([chainId])
 }
 
 model PasswordResetToken {

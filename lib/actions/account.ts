@@ -9,6 +9,7 @@ import { hashPassword, verifyPassword } from "@/lib/crypto/passwords";
 import { checkPassword } from "@/lib/password-policy";
 import { createSession, revokeAllSessionsForUser } from "@/lib/auth/session";
 import { setSessionCookies } from "@/lib/auth/cookies";
+import { classifyDevice } from "@/lib/auth/device";
 import { withAction } from "./with-action";
 import { actionError, actionOk } from "./types";
 
@@ -67,13 +68,15 @@ export const changePassword = withAction(
     await revokeAllSessionsForUser(user.id);
 
     const headerList = await headers();
+    const device = classifyDevice(headerList);
     const { accessToken, refreshToken } = await createSession({
       userId: user.id,
       role: user.role,
+      device,
       userAgent: headerList.get("user-agent"),
       ip: headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
     });
-    await setSessionCookies(accessToken, refreshToken);
+    await setSessionCookies(accessToken, refreshToken, device);
 
     await logAudit({ actorId: user.id, action: "PASSWORD_CHANGED" });
 

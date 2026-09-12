@@ -41,9 +41,31 @@ export function LoginForm() {
   /** Where to land after signing in, defaulting to the dashboard. */
   function destination(): string {
     const next = searchParams.get("next");
-    // Only same-origin paths — an absolute URL here would be an open redirect.
-    return next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+    /*
+     * Only same-origin paths — an absolute URL here would be an open
+     * redirect. Both "//host" and "/\\host" are protocol-relative URLs to
+     * another site once the browser has normalised the slashes, so a single
+     * leading slash is not on its own enough to prove a path is local.
+     */
+    if (!next || !next.startsWith("/")) return "/dashboard";
+    if (/^\/[/\\]/.test(next)) return "/dashboard";
+    return next;
   }
+
+  /*
+   * Why this person is looking at a sign-in screen. Being bounced out with
+   * no explanation reads as a broken app; saying "your 24 hours are up"
+   * reads as a rule, and a rule is something people accept.
+   */
+  const reason = searchParams.get("reason");
+  const reasonNotice =
+    reason === "expired"
+      ? "You've been signed in on this computer for 24 hours, so we signed you out. Please sign in again."
+      : reason === "suspended"
+        ? "This account is no longer active. Please speak to the school office."
+        : reason === "signed-out"
+          ? "Your session has ended. Please sign in again."
+          : null;
 
   async function onSubmitCredentials(event: FormEvent) {
     event.preventDefault();
@@ -154,6 +176,7 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmitCredentials} className="flex flex-col gap-4" noValidate>
       {serverError && <Alert variant="danger">{serverError}</Alert>}
+      {!serverError && reasonNotice && <Alert variant="info">{reasonNotice}</Alert>}
 
       <InputField
         label="CNIC or phone number"

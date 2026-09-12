@@ -3,6 +3,7 @@ import { parseJsonBody } from "@/lib/validation";
 import { twoFactorVerifySchema } from "@/lib/schemas/auth";
 import { ApiError, handleApiError } from "@/lib/errors";
 import { PENDING_2FA_COOKIE, verifyPending2FAToken, createSession } from "@/lib/auth/session";
+import { classifyDevice } from "@/lib/auth/device";
 import { setSessionCookies, clearPending2FACookie, markReturningVisitor } from "@/lib/auth/cookies";
 import { verifyTotpCode, verifyOtpCode, consumeRecoveryCode } from "@/lib/auth/two-factor";
 import { decryptField } from "@/lib/crypto/encryption";
@@ -56,13 +57,15 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     await clearPending2FACookie();
     const ip = clientIp(req);
+    const device = classifyDevice(req.headers);
     const { accessToken, refreshToken } = await createSession({
+      device,
       userId: user.id,
       role: user.role,
       userAgent: req.headers.get("user-agent"),
       ip,
     });
-    await setSessionCookies(accessToken, refreshToken);
+    await setSessionCookies(accessToken, refreshToken, device);
     await markReturningVisitor();
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await logAudit({ actorId: user.id, action: "LOGIN_SUCCESS", req, metadata: { via2fa: true } });

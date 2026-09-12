@@ -19,7 +19,8 @@
     "db:seed:demo": "tsx prisma/seed-demo.ts",
     "smoke": "tsx scripts/smoke-check.ts",
     "rbac": "tsx scripts/rbac-check.ts",
-    "dev:queries": "PRISMA_LOG_QUERIES=1 next dev"
+    "dev:queries": "PRISMA_LOG_QUERIES=1 next dev",
+    "sessions": "tsx scripts/session-check.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

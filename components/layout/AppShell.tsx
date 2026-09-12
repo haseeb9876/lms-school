@@ -8,6 +8,7 @@ import { NotificationBell } from "./NotificationBell";
 import { NotificationWatcher } from "./NotificationWatcher";
 import { readableTextColor } from "@/lib/color";
 import type { BrandingSettings } from "@/lib/branding";
+import type { DeviceClass } from "@/lib/auth/session";
 
 /**
  * The single shell used for every role — nav items are filtered from one
@@ -21,6 +22,7 @@ export function AppShell({
   unreadCount,
   soundEnabled,
   notificationsEnabled,
+  device,
   children,
 }: {
   role: Role;
@@ -29,6 +31,7 @@ export function AppShell({
   unreadCount: number;
   soundEnabled: boolean;
   notificationsEnabled: boolean;
+  device: DeviceClass;
   children: ReactNode;
 }) {
   const mark = branding.logoUrl ? (
@@ -68,7 +71,7 @@ export function AppShell({
           <NavLinks role={role} />
         </div>
 
-        <UserMenu name={userName} role={role} />
+        <UserMenu name={userName} role={role} device={device} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -96,7 +99,7 @@ export function AppShell({
         </main>
       </div>
 
-      <MobileTabBar role={role} />
+      <MobileTabBar role={role} device={device} />
 
       {/* Nothing is polled for at all when alerts are switched off. */}
       {notificationsEnabled && (

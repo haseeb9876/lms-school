@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/errors";
 import { verifyPassword, hashPassword, validatePasswordPolicy } from "@/lib/crypto/passwords";
 import { prisma } from "@/lib/db";
 import { revokeAllSessionsForUser, createSession } from "@/lib/auth/session";
+import { classifyDevice } from "@/lib/auth/device";
 import { setSessionCookies } from "@/lib/auth/cookies";
 import { logAudit } from "@/lib/audit";
 import { clientIp } from "@/lib/auth/rate-limit";
@@ -35,13 +36,17 @@ export const POST = withAuth(null, async (req, { session }) => {
   // the user is issued a fresh session below so they aren't logged out by
   // their own action.
   await revokeAllSessionsForUser(user.id);
+  // Changing a password ends every other session; this device keeps
+  // the policy it already had rather than being re-classified.
+  const device = classifyDevice(req.headers);
   const { accessToken, refreshToken } = await createSession({
+    device,
     userId: user.id,
     role: user.role,
     userAgent: req.headers.get("user-agent"),
     ip: clientIp(req),
   });
-  await setSessionCookies(accessToken, refreshToken);
+  await setSessionCookies(accessToken, refreshToken, device);
 
   await logAudit({ actorId: user.id, action: "PASSWORD_CHANGED", req });
 

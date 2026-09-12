@@ -40,7 +40,7 @@ async function refused(fn: () => Promise<unknown>): Promise<boolean> {
 }
 
 function session(userId: string, role: SessionInfo["role"]): SessionInfo {
-  return { userId, role, sessionId: "rbac-check" };
+  return { userId, role, sessionId: "rbac-check", device: "DESKTOP", absoluteExpiresAt: null };
 }
 
 async function main() {

@@ -28,6 +28,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
         unreadCount={user.unreadCount}
         soundEnabled={user.soundEnabled}
         notificationsEnabled={user.notificationsEnabled}
+        device={session.device}
       >
         {children}
       </AppShell>
