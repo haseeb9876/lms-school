@@ -189,6 +189,15 @@ function ImageUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(currentUrl);
   const [busy, setBusy] = useState(false);
+  /*
+   * A stored image that will not load. This happens for real: an image
+   * uploaded while the app was writing to the local filesystem is recorded
+   * as /api/files/..., and that path does not exist once the app is running
+   * somewhere with blob storage instead. This is the one screen where the
+   * principal can actually fix that, so it says what is wrong rather than
+   * showing an empty broken box.
+   */
+  const [missing, setMissing] = useState(false);
 
   async function onChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -198,6 +207,7 @@ function ImageUploader({
     // Shown straight away; replaced by the stored URL once the upload lands.
     const localPreview = URL.createObjectURL(file);
     setUrl(localPreview);
+    setMissing(false);
 
     try {
       const formData = new FormData();
@@ -207,6 +217,7 @@ function ImageUploader({
       const result = await uploadBrandingImage(formData);
       if (result.ok) {
         setUrl(result.data.url);
+        setMissing(false);
         toast.success(result.message ?? "Uploaded.");
         router.refresh();
       } else {
@@ -252,12 +263,21 @@ function ImageUploader({
               preview === "wide" ? "aspect-[3/1] w-full max-w-lg" : "h-16 w-16"
             )}
           >
-            {url ? (
+            {url && !missing ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={url} alt="" className="h-full w-full object-cover" />
+              <img
+                src={url}
+                alt=""
+                onError={() => setMissing(true)}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span className="px-2 text-center text-xs text-fg-subtle">
-                {preview === "wide" ? "No photo yet" : "No logo"}
+                {missing
+                  ? "Image missing"
+                  : preview === "wide"
+                    ? "No photo yet"
+                    : "No logo"}
               </span>
             )}
           </div>
@@ -282,7 +302,14 @@ function ImageUploader({
                 </Button>
               )}
             </div>
-            <p className="text-xs text-fg-subtle">{hint}</p>
+            {missing ? (
+              <p className="text-xs text-warning">
+                This image was uploaded somewhere the app can no longer read from, so it
+                won&apos;t show anywhere. Upload it again to fix it everywhere.
+              </p>
+            ) : (
+              <p className="text-xs text-fg-subtle">{hint}</p>
+            )}
           </div>
         </div>
 

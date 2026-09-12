@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { getBrandingSettings } from "@/lib/branding";
-import { readableTextColor } from "@/lib/color";
+import { BrandMark } from "@/components/branding/BrandMark";
 
 /**
  * The frame shared by every signed-out screen — sign in, forgot password,
@@ -26,26 +26,12 @@ export async function AuthShell({
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <Link href="/" aria-label={`${branding.schoolName} home`}>
-            {branding.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={branding.logoUrl}
-                alt=""
-                aria-hidden="true"
-                className="h-14 w-14 rounded-xl object-cover shadow-soft"
-              />
-            ) : (
-              <div
-                aria-hidden="true"
-                className="flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold shadow-soft"
-                style={{
-                  background: branding.primaryColor,
-                  color: readableTextColor(branding.primaryColor),
-                }}
-              >
-                {branding.schoolName.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <BrandMark
+              logoUrl={branding.logoUrl}
+              schoolName={branding.schoolName}
+              primaryColor={branding.primaryColor}
+              size="md"
+            />
           </Link>
 
           <div>

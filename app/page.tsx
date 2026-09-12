@@ -6,9 +6,9 @@ import { getBrandingSettings } from "@/lib/branding";
 import { getCurrentSession } from "@/lib/auth/current-user";
 import { RETURNING_COOKIE } from "@/lib/auth/cookies";
 import { quoteForSeed } from "@/lib/quotes";
-import { readableTextColor } from "@/lib/color";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { WelcomeStage } from "@/components/welcome/WelcomeStage";
+import { BrandMark } from "@/components/branding/BrandMark";
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBrandingSettings();
@@ -46,22 +46,13 @@ export default async function WelcomePage() {
   // disagree with the server's HTML and React would swap the text out.
   const quote = quoteForSeed(Math.floor(Math.random() * 2 ** 31));
 
-  const mark = branding.logoUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={branding.logoUrl}
-      alt=""
-      aria-hidden="true"
-      className="h-16 w-16 rounded-2xl object-cover shadow-raised"
+  const mark = (
+    <BrandMark
+      logoUrl={branding.logoUrl}
+      schoolName={branding.schoolName}
+      primaryColor={branding.primaryColor}
+      size="lg"
     />
-  ) : (
-    <div
-      aria-hidden="true"
-      className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold shadow-raised"
-      style={{ background: branding.primaryColor, color: readableTextColor(branding.primaryColor) }}
-    >
-      {branding.schoolName.charAt(0).toUpperCase()}
-    </div>
   );
 
   return (
