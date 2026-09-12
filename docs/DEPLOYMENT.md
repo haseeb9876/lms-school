@@ -120,13 +120,15 @@ Run the verification suite against production once after go-live and after
 every deploy:
 
 ```
-npm run typecheck && npm test      # 61 unit tests
-npm run check:auth                 # every route and action is protected
-npm run rbac && npm run smoke      # data scoping · 91 route/role checks
-npm run sessions                   # 24h desktop cap · phones stay signed in
-npm run recovery                   # password desk cannot be used to enumerate
-npm run datesheets                 # class datesheets stay inside their class
+npm run verify
 ```
+
+That runs, in order: typecheck, 69 unit tests, auth coverage (every route and
+action is protected), RBAC data scoping, 91 route/role smoke checks, the
+session policy, the password desk, and datesheet scoping.
+
+Point it at a running server — `SMOKE_BASE_URL=https://… npm run smoke` for a
+deployed one.
 
 `smoke`, `sessions` and `recovery` create and delete a temporary probe
 account — safe on production, but they do write. Run them knowingly.

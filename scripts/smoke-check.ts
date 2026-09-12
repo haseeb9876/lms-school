@@ -15,6 +15,11 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { createSession, ACCESS_COOKIE } from "../lib/auth/session";
+import {
+  threwWhileRendering,
+  renderFailureDetail,
+  streamedRedirectTarget,
+} from "./lib/render-failure";
 
 const BASE_URL = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
 const prisma = new PrismaClient();
@@ -217,17 +222,44 @@ async function main() {
        * user lands — being bounced to /login or /unauthorized is the failure,
        * not the redirect itself.
        */
-      const response = await fetch(`${BASE_URL}${url}`, { headers: { cookie }, redirect: "follow" });
+      let response = await fetch(`${BASE_URL}${url}`, { headers: { cookie }, redirect: "follow" });
       checked++;
+
+      /*
+       * A 200 does not mean the page worked — see scripts/lib/render-failure.
+       * Every page streams a skeleton immediately, so a Server Component that
+       * throws afterwards cannot change the status line. The body has to be
+       * read to find out.
+       */
+      let body = await response.text();
+      let note = "";
+
+      /*
+       * A redirect issued *during* streaming is expressed in the body, not in
+       * a Location header, so `fetch` cannot follow it. Several routes rely on
+       * one — the register defaults to the teacher's first class and today's
+       * date — and checking only the first response would verify a page that
+       * nobody ever sees.
+       */
+      const streamed = streamedRedirectTarget(body);
+      if (streamed) {
+        note = `  → ${streamed.split("?")[0]}`;
+        response = await fetch(`${BASE_URL}${streamed}`, { headers: { cookie }, redirect: "follow" });
+        body = await response.text();
+      }
 
       const landedOn = new URL(response.url).pathname;
       const bounced = landedOn === "/login" || landedOn === "/unauthorized";
-      const ok = response.status === 200 && !bounced;
+      const threw = threwWhileRendering(body);
+      const ok = response.status === 200 && !bounced && !threw;
 
       if (!ok) failures++;
-      console.log(
-        `  ${ok ? "✓" : "✗"} ${response.status}  ${route}${bounced ? `  → ${landedOn}` : ""}`
-      );
+      const why = threw
+        ? `  → ${renderFailureDetail(body)}`
+        : bounced
+          ? `  → ${landedOn}`
+          : note;
+      console.log(`  ${ok ? "✓" : "✗"} ${response.status}  ${route}${why}`);
     }
 
     for (const route of FORBIDDEN[role] ?? []) {
