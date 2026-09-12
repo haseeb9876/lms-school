@@ -49,20 +49,37 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 /**
- * Opens several pooled connections up front.
+ * Opens several pooled connections up front — on a long-lived server only.
  *
- * Prisma creates connections lazily and one at a time, and against this
- * database each handshake costs about as much as a query — roughly 260ms.
- * A page that issues eight queries in parallel therefore pays for eight
- * *serial* handshakes on the first request that needs them: measured at
- * 2.4s cold against 265ms once the pool is warm, for the identical work.
+ * Prisma creates connections lazily and one at a time, and against a distant
+ * database each handshake costs about as much as a query — roughly 260ms. A
+ * page issuing eight queries in parallel therefore pays for eight *serial*
+ * handshakes on the first request that needs them: measured at 2.4s cold
+ * against 265ms once warm, for identical work. Warming at startup moves that
+ * cost off the first user's request.
  *
- * Warming at startup moves that cost off the first user's request. The
- * queries are trivial, run once per process, and failure is ignored — if
- * the database is unreachable the app has bigger problems than a cold pool,
- * and the real request will surface it properly.
+ * That reasoning inverts on serverless. There, "startup" happens on every
+ * cold invocation, and each concurrent instance is its own process — so this
+ * would open eight connections per instance, dozens or hundreds at once,
+ * against a connection limit, to serve requests that mostly need one or two.
+ * It would also add its own latency to the very cold start it is meant to
+ * help. So on Vercel and friends the pool is left to fill on demand, which is
+ * the right behaviour when the process may be discarded after one request.
  */
 const WARM_CONNECTIONS = 8;
+
+/**
+ * True on Vercel, AWS Lambda and Netlify. Each sets its own marker; none of
+ * them is set on an ordinary Node server, which is the case we want to warm.
+ */
+function isServerless(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.NETLIFY ||
+      process.env.DISABLE_POOL_WARMUP
+  );
+}
 
 async function warmPool(): Promise<void> {
   try {
@@ -70,11 +87,12 @@ async function warmPool(): Promise<void> {
       Array.from({ length: WARM_CONNECTIONS }, () => prisma.$queryRaw`SELECT 1`)
     );
   } catch {
-    // Deliberately silent — see above.
+    // Deliberately silent: if the database is unreachable the app has bigger
+    // problems than a cold pool, and the real request will surface it.
   }
 }
 
-if (!globalForPrisma.prismaWarmed) {
+if (!globalForPrisma.prismaWarmed && !isServerless()) {
   globalForPrisma.prismaWarmed = true;
   // Not awaited: module initialisation must not block on the network.
   void warmPool();
