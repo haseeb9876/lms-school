@@ -5,7 +5,8 @@ import { ApiError, handleApiError } from "@/lib/errors";
 import { findUserByIdentifier } from "@/lib/auth/lookup";
 import { verifyPassword } from "@/lib/crypto/passwords";
 import { createSession, signPending2FAToken } from "@/lib/auth/session";
-import { setSessionCookies, setPending2FACookie } from "@/lib/auth/cookies";
+import { classifyDevice } from "@/lib/auth/device";
+import { setSessionCookies, setPending2FACookie, markReturningVisitor } from "@/lib/auth/cookies";
 import { issueOtpCode } from "@/lib/auth/two-factor";
 import { sendEmail } from "@/lib/email";
 import { prisma } from "@/lib/db";
@@ -59,18 +60,26 @@ export async function POST(req: NextRequest): Promise<Response> {
       });
     }
 
+    // Decided once, at sign-in, and then carried by the session for its
+    // whole life — see rotateSession. It sets whether this session is
+    // capped at 24 hours or lasts until the person taps Log out.
+    const device = classifyDevice(req.headers);
+
     const { accessToken, refreshToken } = await createSession({
       userId: user.id,
       role: user.role,
+      device,
       userAgent: req.headers.get("user-agent"),
       ip,
     });
-    await setSessionCookies(accessToken, refreshToken);
+    await setSessionCookies(accessToken, refreshToken, device);
+    await markReturningVisitor();
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await logAudit({ actorId: user.id, action: "LOGIN_SUCCESS", req });
 
     return Response.json({
       user: { id: user.id, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword },
+      device,
     });
   } catch (err) {
     return handleApiError(err);

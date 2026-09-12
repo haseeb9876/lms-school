@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lms-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "lms-dev-queries",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:queries"],
+      "port": 3000
+    }
+  ]
+}

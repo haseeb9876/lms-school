@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { Role } from "@prisma/client";
 import { NavLinks } from "./NavLinks";
-import { MobileNav } from "./MobileNav";
+import { MobileTabBar } from "./MobileTabBar";
 import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "./NotificationBell";
+import { NotificationWatcher } from "./NotificationWatcher";
 import { readableTextColor } from "@/lib/color";
 import type { BrandingSettings } from "@/lib/branding";
+import type { DeviceClass } from "@/lib/auth/session";
 
 /**
  * The single shell used for every role — nav items are filtered from one
@@ -15,46 +19,92 @@ export function AppShell({
   role,
   userName,
   branding,
+  unreadCount,
+  soundEnabled,
+  notificationsEnabled,
+  device,
   children,
 }: {
   role: Role;
   userName: string;
   branding: BrandingSettings;
+  unreadCount: number;
+  soundEnabled: boolean;
+  notificationsEnabled: boolean;
+  device: DeviceClass;
   children: ReactNode;
 }) {
-  return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-64 flex-none flex-col gap-6 border-r border-neutral-200 bg-white p-4 md:flex">
-        <div className="flex items-center gap-2 px-1">
-          {branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={branding.logoUrl} alt={branding.schoolName} className="h-8 w-8 rounded-md object-cover" />
-          ) : (
-            <div
-              className="flex h-8 w-8 flex-none items-center justify-center rounded-md text-sm font-bold"
-              style={{ background: branding.primaryColor, color: readableTextColor(branding.primaryColor) }}
-            >
-              {branding.schoolName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <span className="truncate text-sm font-semibold text-neutral-900">{branding.schoolName}</span>
-        </div>
+  const mark = branding.logoUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={branding.logoUrl} alt="" aria-hidden="true" className="h-8 w-8 flex-none rounded-md object-cover" />
+  ) : (
+    <div
+      aria-hidden="true"
+      className="flex h-8 w-8 flex-none items-center justify-center rounded-md text-sm font-bold"
+      style={{ background: branding.primaryColor, color: readableTextColor(branding.primaryColor) }}
+    >
+      {branding.schoolName.charAt(0).toUpperCase()}
+    </div>
+  );
 
-        <div className="flex-1">
+  return (
+    <div className="flex min-h-dvh bg-surface-sunken">
+      {/* Keyboard users shouldn't have to tab through the whole sidebar on
+          every page just to reach the content. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-fg"
+      >
+        Skip to content
+      </a>
+
+      <aside
+        data-print-hide
+        className="sticky top-0 hidden h-dvh w-64 flex-none flex-col gap-6 border-r border-line bg-surface p-4 md:flex"
+      >
+        <Link href="/dashboard" className="flex items-center gap-2 rounded-md px-1 py-0.5">
+          {mark}
+          <span className="truncate text-sm font-semibold text-fg">{branding.schoolName}</span>
+        </Link>
+
+        <div className="scrollbar-subtle -mr-2 flex-1 overflow-y-auto pr-2">
           <NavLinks role={role} />
         </div>
 
-        <UserMenu name={userName} role={role} />
+        <UserMenu name={userName} role={role} device={device} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:hidden">
-          <MobileNav role={role} schoolName={branding.schoolName} />
-          <span className="truncate text-sm font-semibold text-neutral-900">{branding.schoolName}</span>
+        <header
+          data-print-hide
+          className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/90 px-4 py-2.5 backdrop-blur-sm"
+        >
+          <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
+            {mark}
+            <span className="truncate text-sm font-semibold text-fg">{branding.schoolName}</span>
+          </Link>
+
+          <div className="ml-auto flex items-center gap-1">
+            <NotificationBell unreadCount={unreadCount} />
+          </div>
         </header>
 
-        <main className="flex-1 bg-neutral-50 p-4 md:p-8">{children}</main>
+        <main
+          id="main-content"
+          // Bottom padding clears the fixed mobile tab bar; without it the
+          // last row of any list sits underneath it and can't be tapped.
+          className="flex-1 p-4 pb-24 md:p-8 md:pb-8"
+        >
+          {children}
+        </main>
       </div>
+
+      <MobileTabBar role={role} device={device} />
+
+      {/* Nothing is polled for at all when alerts are switched off. */}
+      {notificationsEnabled && (
+        <NotificationWatcher initialUnread={unreadCount} soundEnabled={soundEnabled} />
+      )}
     </div>
   );
 }

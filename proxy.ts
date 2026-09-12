@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/auth/tokens";
+import {
+  ACCESS_COOKIE,
+  SESSION_HINT_COOKIE,
+  verifyAccessToken,
+  isPastAbsoluteDeadline,
+} from "@/lib/auth/tokens";
+import { roleMayAccess } from "@/lib/route-access";
 
 /**
  * Default-deny: everything requires a valid session unless explicitly
@@ -8,7 +14,9 @@ import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/auth/tokens";
  * two known paths and left every other route open) — a route that isn't
  * allowlisted is protected automatically, not by remembering to add a check.
  */
+// "/" is the public welcome screen; the dashboard lives at /dashboard.
 const PUBLIC_PAGE_PATHS = ["/login", "/forgot-password", "/reset-password", "/unauthorized"];
+const PUBLIC_EXACT_PATHS = ["/"];
 const PUBLIC_API_PATHS = [
   "/api/auth/login",
   "/api/auth/2fa/verify",
@@ -20,8 +28,17 @@ const PUBLIC_API_PATHS = [
 
 const STATIC_ASSET_PATTERN = /\.(svg|png|jpg|jpeg|gif|ico|css|js|woff2?|map)$/;
 
+/**
+ * Branding images are served to signed-out visitors because the welcome and
+ * login screens show them. The route itself only ever serves the branding
+ * folder, so this prefix does not widen access to other uploads.
+ */
+const PUBLIC_PREFIXES = ["/api/files/branding/"];
+
 function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_EXACT_PATHS.includes(pathname)) return true;
   if (PUBLIC_API_PATHS.includes(pathname)) return true;
+  if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true;
   return PUBLIC_PAGE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
@@ -75,17 +92,81 @@ export async function proxy(request: NextRequest) {
   }
 
   const token = request.cookies.get(ACCESS_COOKIE)?.value;
-  const session = token ? await verifyAccessToken(token) : null;
+  const verified = token ? await verifyAccessToken(token) : null;
+
+  /*
+   * The desktop ceiling, enforced here so it is exact.
+   *
+   * The deadline travels inside the access token, so this costs no database
+   * round trip and cannot be outrun: a desktop session whose token was
+   * minted ten minutes ago still stops the moment the 24 hours are up,
+   * rather than coasting to the end of that token's own lifetime. Treated
+   * as *not renewable* — unlike an ordinary expiry below, there is nothing
+   * to renew, so this goes straight to the sign-in screen.
+   */
+  const pastDeadline = verified !== null && isPastAbsoluteDeadline(verified);
+  const session = pastDeadline ? null : verified;
 
   if (!session) {
+    /*
+     * An expired access token is not the same as being signed out. A phone
+     * session is meant to survive indefinitely and a desktop one for a day,
+     * while the access token itself lasts fifteen minutes — so for the vast
+     * majority of these requests the right answer is to renew silently and
+     * carry on, not to throw someone back to the login screen.
+     *
+     * The refresh cookie is scoped to /api/auth and so is not readable
+     * here; the hint cookie says whether attempting a renewal is worth a
+     * redirect. Failure there clears both cookies, so this cannot loop.
+     */
+    const renewable = !pastDeadline && Boolean(request.cookies.get(SESSION_HINT_COOKIE)?.value);
+
     if (pathname.startsWith("/api/")) {
-      const response = NextResponse.json({ error: "You need to sign in to do that." }, { status: 401 });
+      const response = NextResponse.json(
+        {
+          error: pastDeadline
+            ? "You've been signed in for 24 hours. Please sign in again."
+            : "You need to sign in to do that.",
+          // Lets a client distinguish "renew and retry" from "give up".
+          code: renewable ? "SESSION_STALE" : "NOT_AUTHENTICATED",
+        },
+        { status: 401 }
+      );
       response.headers.set("Content-Security-Policy", csp);
       return response;
     }
+
+    if (renewable) {
+      const refreshUrl = new URL("/api/auth/refresh", request.url);
+      refreshUrl.searchParams.set("next", pathname + request.nextUrl.search);
+      const response = NextResponse.redirect(refreshUrl);
+      response.headers.set("Content-Security-Policy", csp);
+      return response;
+    }
+
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
+    if (pastDeadline) loginUrl.searchParams.set("reason", "expired");
     const response = NextResponse.redirect(loginUrl);
+    // A session past its ceiling is over; leaving the cookies in place
+    // would have every later request retry a renewal that cannot succeed.
+    if (pastDeadline) {
+      response.cookies.set(ACCESS_COOKIE, "", { path: "/", maxAge: 0 });
+      response.cookies.set(SESSION_HINT_COOKIE, "", { path: "/", maxAge: 0 });
+    }
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  }
+
+  /*
+   * Role check before rendering starts. Pages carry their own
+   * `requireAuth`, but that runs mid-render — and since every segment now
+   * has a loading.tsx, the 200 and the skeleton have already been streamed
+   * by then, so a refusal can only be a client-side redirect. Deciding here
+   * keeps a forbidden route an honest redirect for every client.
+   */
+  if (!pathname.startsWith("/api/") && !roleMayAccess(pathname, session.role)) {
+    const response = NextResponse.redirect(new URL("/unauthorized", request.url));
     response.headers.set("Content-Security-Policy", csp);
     return response;
   }

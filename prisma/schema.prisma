@@ -67,40 +67,64 @@ model User {
 
   parentLinks ParentStudentLink[] @relation("ParentLinks")
 
-  teacherAssignments TeacherSubjectAssignment[]
-  classesAsTeacher   Section[]                  @relation("SectionClassTeacher")
-  timetableSlots     TimetableSlot[]
-  markedAttendance   AttendanceRecord[]         @relation("AttendanceMarkedBy")
-  assignmentsCreated Assignment[]               @relation("AssignmentTeacher")
-  submissionsGraded  Submission[]               @relation("SubmissionGradedBy")
-  examsCreated       Exam[]                     @relation("ExamCreatedBy")
-  examResultsEntered ExamResult[]               @relation("ExamResultEnteredBy")
-  invoicesIssued     FeeInvoice[]               @relation("InvoiceIssuedBy")
-  paymentsReceived   FeePayment[]               @relation("PaymentReceivedBy")
-  announcementsMade  Announcement[]             @relation("AnnouncementAuthor")
-  notifications      Notification[]
-  ticketsRaised      DeskTicket[]               @relation("TicketRaisedBy")
-  ticketsAssigned    DeskTicket[]               @relation("TicketAssignedTo")
-  ticketMessages     DeskTicketMessage[]
-  auditLogEntries    AuditLog[]                 @relation("AuditActor")
+  teacherAssignments  TeacherSubjectAssignment[]
+  classesAsTeacher    Section[]                  @relation("SectionClassTeacher")
+  timetableSlots      TimetableSlot[]
+  markedAttendance    AttendanceRecord[]         @relation("AttendanceMarkedBy")
+  assignmentsCreated  Assignment[]               @relation("AssignmentTeacher")
+  submissionsGraded   Submission[]               @relation("SubmissionGradedBy")
+  examsCreated        Exam[]                     @relation("ExamCreatedBy")
+  datesheetsCreated   ExamDatesheet[]            @relation("DatesheetCreatedBy")
+  examResultsEntered  ExamResult[]               @relation("ExamResultEnteredBy")
+  invoicesIssued      FeeInvoice[]               @relation("InvoiceIssuedBy")
+  paymentsReceived    FeePayment[]               @relation("PaymentReceivedBy")
+  announcementsMade   Announcement[]             @relation("AnnouncementAuthor")
+  notifications       Notification[]
+  notificationSetting NotificationSetting?
+  ticketsRaised       DeskTicket[]               @relation("TicketRaisedBy")
+  ticketsAssigned     DeskTicket[]               @relation("TicketAssignedTo")
+  ticketMessages      DeskTicketMessage[]
+  auditLogEntries     AuditLog[]                 @relation("AuditActor")
 
   @@index([role])
   @@index([status])
+  // The people directories order and search by name across every user.
+  @@index([name])
 }
 
 // DB-backed refresh sessions — enables logout-everywhere and admin-forced logout.
+enum DeviceClass {
+  DESKTOP
+  MOBILE
+}
+
 model Session {
-  id               String    @id @default(cuid())
-  userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshTokenHash String    @unique
-  userAgent        String?
-  ip               String?
-  createdAt        DateTime  @default(now())
-  expiresAt        DateTime
-  revokedAt        DateTime?
+  id                String      @id @default(cuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash  String      @unique
+  userAgent         String?
+  ip                String?
+  createdAt         DateTime    @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  /// What kind of device signed in. Desktop sessions are capped at 24
+  /// hours; phones stay signed in until the person taps Log out.
+  deviceClass       DeviceClass @default(DESKTOP)
+  /// The hard deadline a desktop session can never be renewed past. Null
+  /// on phones, which have no cap — that is the whole point of the phone
+  /// policy, so it is represented as an absent deadline rather than a
+  /// distant one that would quietly expire someone in a year's time.
+  absoluteExpiresAt DateTime?
+  /// Rolled forward on every token rotation, so the device list can show
+  /// "last active" rather than only when the session began.
+  lastSeenAt        DateTime    @default(now())
+  /// Carried across rotations so the device list keeps one stable identity
+  /// per browser, instead of appearing to be a new device every 15 minutes.
+  chainId           String?
 
   @@index([userId])
+  @@index([chainId])
 }
 
 model PasswordResetToken {
@@ -225,11 +249,12 @@ model AcademicYear {
   endDate   DateTime
   isCurrent Boolean  @default(false)
 
-  terms         Term[]
-  sections      Section[]
-  enrollments   Enrollment[]
-  assignments   TeacherSubjectAssignment[]
-  feeStructures FeeStructure[]
+  terms          Term[]
+  sections       Section[]
+  enrollments    Enrollment[]
+  assignments    TeacherSubjectAssignment[]
+  feeStructures  FeeStructure[]
+  examDatesheets ExamDatesheet[]
 }
 
 model Term {
@@ -240,8 +265,9 @@ model Term {
   startDate      DateTime
   endDate        DateTime
 
-  exams       Exam[]
-  feeInvoices FeeInvoice[]
+  exams          Exam[]
+  feeInvoices    FeeInvoice[]
+  examDatesheets ExamDatesheet[]
 
   @@unique([academicYearId, name])
 }
@@ -273,8 +299,11 @@ model Section {
   assignments        Assignment[]
   exams              Exam[]
   feeStructures      FeeStructure[]
+  examDatesheets     ExamDatesheet[]
 
   @@unique([classId, academicYearId, name])
+  @@index([academicYearId])
+  @@index([classTeacherId])
 }
 
 // Historical record — a student's section per academic year. Needed for
@@ -292,6 +321,8 @@ model Enrollment {
 
   @@unique([studentId, academicYearId])
   @@index([sectionId])
+  @@index([academicYearId])
+  @@index([sectionId, academicYearId, status])
 }
 
 model Subject {
@@ -304,6 +335,7 @@ model Subject {
   assignments        Assignment[]
   exams              Exam[]
   timetableSlots     TimetableSlot[]
+  datesheetEntries   ExamDatesheetEntry[]
 }
 
 // Single source of truth for "what can this teacher touch" — used by
@@ -376,6 +408,8 @@ model AttendanceRecord {
 
   @@unique([studentId, date])
   @@index([sectionId, date])
+  // Date-windowed analytics scan by date without a section filter.
+  @@index([date])
 }
 
 model Assignment {
@@ -396,6 +430,8 @@ model Assignment {
   submissions Submission[]
 
   @@index([sectionId])
+  @@index([teacherId])
+  @@index([dueDate])
 }
 
 enum SubmissionStatus {
@@ -422,6 +458,7 @@ model Submission {
 
   @@unique([assignmentId, studentId])
   @@index([studentId])
+  @@index([assignmentId, status])
 }
 
 model Exam {
@@ -465,6 +502,94 @@ model ExamResult {
 // Fees (manual/offline tracking; schema is gateway-ready but no gateway
 // integration code is written in this phase)
 // =========================================================================
+
+// =========================================================================
+// Examination datesheets
+// =========================================================================
+
+enum DatesheetStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// A published examination timetable.
+///
+/// Deliberately separate from `Exam`, which is one subject's paper for one
+/// class and exists to carry marks. A datesheet is the notice a school pins
+/// to the wall: it covers many classes and many papers at once, it is what
+/// parents photograph and keep, and it has to stay readable exactly as it
+/// was published even after the exams it describes are over.
+model ExamDatesheet {
+  id             String               @id @default(cuid())
+  title          String
+  academicYearId String
+  academicYear   AcademicYear         @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  termId         String?
+  term           Term?                @relation(fields: [termId], references: [id], onDelete: SetNull)
+  /// Reuses the announcement vocabulary so "one class and its guardians"
+  /// means the same thing here as it does for a notice.
+  audience       AnnouncementAudience @default(ALL)
+  sectionId      String?
+  section        Section?             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  /// First day of the examinations, for sorting and for the "upcoming"
+  /// badge. Derived from the entries when they exist, typed by hand when
+  /// the datesheet is only a photograph.
+  startsOn       DateTime?
+  notes          String?
+  status         DatesheetStatus      @default(DRAFT)
+  publishedAt    DateTime?
+  createdById    String
+  createdBy      User                 @relation("DatesheetCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  pages   ExamDatesheetPage[]
+  entries ExamDatesheetEntry[]
+
+  @@index([status, publishedAt])
+  @@index([academicYearId])
+}
+
+/// One photographed or scanned page of a datesheet.
+///
+/// Several, because a whole-school datesheet is rarely one sheet of paper —
+/// and asking a principal to stitch four photographs into one image before
+/// uploading is how a feature goes unused.
+model ExamDatesheetPage {
+  id          String        @id @default(cuid())
+  datesheetId String
+  datesheet   ExamDatesheet @relation(fields: [datesheetId], references: [id], onDelete: Cascade)
+  /// What `storage.save` returned. Never handed to the browser directly —
+  /// these are class-specific documents, so they are streamed through an
+  /// authenticated route that re-checks who is asking.
+  storageRef  String
+  caption     String?
+  sortOrder   Int           @default(0)
+
+  @@index([datesheetId])
+}
+
+/// One paper, when the datesheet is built on the portal instead of photographed.
+model ExamDatesheetEntry {
+  id          String        @id @default(cuid())
+  datesheetId String
+  datesheet   ExamDatesheet @relation(fields: [datesheetId], references: [id], onDelete: Cascade)
+  subjectId   String?
+  subject     Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  /// Stored as written, not looked up through the relation. A datesheet is
+  /// a historical record — renaming a subject next year must not silently
+  /// rewrite the notice parents were given last year.
+  subjectName String
+  examDate    DateTime
+  /// "09:00" — a wall-clock time, not an instant, so it survives any
+  /// timezone handling unchanged.
+  startTime   String?
+  endTime     String?
+  room        String?
+  sortOrder   Int           @default(0)
+
+  @@index([datesheetId, examDate])
+}
 
 enum FeeFrequency {
   MONTHLY
@@ -530,6 +655,8 @@ model FeeInvoice {
   payments FeePayment[]
 
   @@index([studentId, status])
+  @@index([status])
+  @@index([dueDate])
 }
 
 enum PaymentMethod {
@@ -566,7 +693,15 @@ enum AnnouncementAudience {
   TEACHERS
   STUDENTS
   PARENTS
+  /// One class's students.
   SECTION
+  /// Everyone taught and teaching, but not guardians.
+  STUDENTS_AND_TEACHERS
+  /// One class's students together with their guardians — the right target
+  /// for a datesheet or a holiday, which a parent needs as much as a child.
+  SECTION_WITH_GUARDIANS
+  /// The teachers who take one particular class.
+  SECTION_TEACHERS
 }
 
 model Announcement {
@@ -591,6 +726,28 @@ enum NotificationType {
   ASSIGNMENT
   DESK_TICKET
   SYSTEM
+}
+
+/// Per-user control over what reaches them and whether it makes a sound.
+/// A row is created on first use; absence means "every default is on".
+model NotificationSetting {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Master switch for the in-app bell.
+  enabled      Boolean @default(true)
+  /// Plays a short chime when something new arrives while the app is open.
+  soundEnabled Boolean @default(true)
+
+  announcements Boolean @default(true)
+  grades        Boolean @default(true)
+  attendance    Boolean @default(true)
+  fees          Boolean @default(true)
+  assignments   Boolean @default(true)
+  deskTickets   Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
 }
 
 model Notification {
@@ -658,17 +815,21 @@ model DeskTicketMessage {
 
 // Singleton row (application layer enforces a single row, id always "school").
 model SchoolSettings {
-  id           String   @id @default("school")
-  schoolName   String   @default("My School")
-  logoUrl      String?
-  faviconUrl   String?
-  primaryColor String   @default("#0E6E68")
-  address      String?
-  phone        String?
-  email        String?
-  website      String?
-  updatedById  String?
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default("school")
+  schoolName       String   @default("My School")
+  logoUrl          String?
+  faviconUrl       String?
+  /// Photograph of the school, used as the welcome screen's backdrop.
+  buildingImageUrl String?
+  /// One line shown under the school name on the welcome screen.
+  tagline          String?
+  primaryColor     String   @default("#0E6E68")
+  address          String?
+  phone            String?
+  email            String?
+  website          String?
+  updatedById      String?
+  updatedAt        DateTime @updatedAt
 }
 
 enum AuditAction {

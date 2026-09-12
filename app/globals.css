@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/*
+ * Dark mode is class-driven rather than media-driven so the user's explicit
+ * choice can beat their OS setting. ThemeScript (components/theme) sets the
+ * class before first paint; "system" simply means no class is written and
+ * the media query below supplies the same values.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Warm-neutral scale (overrides Tailwind's default grey) */
   --color-neutral-50: #fafaf8;
@@ -14,15 +22,31 @@
   --color-neutral-900: #1a1815;
   --color-neutral-950: #0f0e0c;
 
-  /* Semantic (independent of the brand accent) */
-  --color-success: #1f9254;
-  --color-success-soft: #e3f5ea;
-  --color-warning: #b4740e;
-  --color-warning-soft: #fbf0dc;
-  --color-danger: #c23b2c;
-  --color-danger-soft: #fbeae7;
-  --color-info: #2064b4;
-  --color-info-soft: #e3eefb;
+  /*
+   * Semantic surface/foreground tokens. Components reference these instead
+   * of raw neutrals (bg-surface, not bg-white) so a single palette swap in
+   * the :root/.dark blocks below re-themes the entire app — the reason the
+   * dark theme didn't require touching every component.
+   */
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  /* Semantic status colors (independent of the brand accent) */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
 
   /*
    * Dynamic brand accent. --brand-primary/-fg/-soft are plain CSS custom
@@ -34,6 +58,14 @@
   --color-brand-fg: var(--brand-primary-fg, #ffffff);
   --color-brand-soft: var(--brand-primary-soft, #e3f1ef);
 
+  /* Chart series — readable on both themes, distinguishable when adjacent. */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
@@ -42,18 +74,151 @@
   --radius-lg: 0.875rem;
   --radius-xl: 1.25rem;
 
-  --shadow-soft: 0 1px 2px rgba(26, 24, 21, 0.04), 0 8px 24px -12px rgba(26, 24, 21, 0.14);
-  --shadow-raised: 0 2px 6px rgba(26, 24, 21, 0.06), 0 16px 32px -16px rgba(26, 24, 21, 0.18);
+  --shadow-soft: 0 1px 2px var(--shadow-tint-a), 0 8px 24px -12px var(--shadow-tint-b);
+  --shadow-raised: 0 2px 6px var(--shadow-tint-a), 0 16px 32px -16px var(--shadow-tint-b);
+  --shadow-overlay: 0 12px 28px -8px var(--shadow-tint-b), 0 32px 64px -24px var(--shadow-tint-b);
+
+  --animate-fade-in: fade-in 0.18s ease-out;
+  --animate-slide-up: slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-scale-in: scale-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+}
+
+:root {
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #fafaf8;
+  --surface-hover: #f2f1ed;
+  --line: #e4e2db;
+  --line-strong: #cfccc1;
+  --fg: #1a1815;
+  --fg-muted: #5c584b;
+  --fg-subtle: #7c7768;
+
+  --success: #1f9254;
+  --success-soft: #e3f5ea;
+  --warning: #b4740e;
+  --warning-soft: #fbf0dc;
+  --danger: #c23b2c;
+  --danger-soft: #fbeae7;
+  --info: #2064b4;
+  --info-soft: #e3eefb;
+
+  /*
+   * Categorical chart series, in a fixed order that is itself the
+   * colour-blind-safety mechanism — slots are assigned 1, 2, 3… and never
+   * cycled or reordered per chart. Validated as a set (lightness band,
+   * chroma floor, adjacent-pair CVD separation, normal-vision separation,
+   * contrast) rather than picked by eye; the brand teal deliberately isn't
+   * in here, because a principal can change it to anything and would break
+   * the guarantee.
+   *
+   * Slots 3–5 fall below 3:1 on the light surface, so any chart using them
+   * must carry direct labels or a table view rather than relying on the
+   * mark alone.
+   */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+
+  --shadow-tint-a: rgba(26, 24, 21, 0.04);
+  --shadow-tint-b: rgba(26, 24, 21, 0.14);
+
+  color-scheme: light;
+}
+
+.dark {
+  /*
+   * Not an inversion of the light palette — a dark UI needs surfaces that
+   * get *lighter* as they come forward (sunken page, raised cards), which is
+   * the opposite of how the light theme stacks. Status colors are lifted in
+   * lightness and their "soft" variants become low-alpha washes, because the
+   * light theme's pastel tints turn muddy against a dark ground.
+   */
+  --surface: #1c1a17;
+  --surface-raised: #24211d;
+  --surface-sunken: #141311;
+  --surface-hover: #2c2a23;
+  --line: #34312a;
+  --line-strong: #443f36;
+  --fg: #f2f1ed;
+  --fg-muted: #a8a398;
+  --fg-subtle: #7c7768;
+
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.14);
+  --warning: #fbbf4e;
+  --warning-soft: rgba(251, 191, 78, 0.14);
+  --danger: #f87a6a;
+  --danger-soft: rgba(248, 122, 106, 0.14);
+  --info: #6aa8f5;
+  --info-soft: rgba(106, 168, 245, 0.14);
+
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
+
+  --shadow-tint-a: rgba(0, 0, 0, 0.3);
+  --shadow-tint-b: rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  /*
+   * "System" preference: no .dark class is written, so these mirror the
+   * .dark block. Scoped with :not(.light) so an explicit light choice still
+   * wins over a dark OS setting.
+   */
+  :root:not(.light):not(.dark) {
+    --surface: #1c1a17;
+    --surface-raised: #24211d;
+    --surface-sunken: #141311;
+    --surface-hover: #2c2a23;
+    --line: #34312a;
+    --line-strong: #443f36;
+    --fg: #f2f1ed;
+    --fg-muted: #a8a398;
+    --fg-subtle: #7c7768;
+
+    --success: #4ade80;
+    --success-soft: rgba(74, 222, 128, 0.14);
+    --warning: #fbbf4e;
+    --warning-soft: rgba(251, 191, 78, 0.14);
+    --danger: #f87a6a;
+    --danger-soft: rgba(248, 122, 106, 0.14);
+    --info: #6aa8f5;
+    --info-soft: rgba(106, 168, 245, 0.14);
+
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
+
+    --shadow-tint-a: rgba(0, 0, 0, 0.3);
+    --shadow-tint-b: rgba(0, 0, 0, 0.5);
+
+    color-scheme: dark;
+  }
 }
 
 @layer base {
   html {
     font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background-color: var(--color-neutral-50);
-    color: var(--color-neutral-900);
+    background-color: var(--color-surface-sunken);
+    color: var(--color-fg);
   }
 
   :focus-visible {
@@ -63,6 +228,99 @@
 
   ::selection {
     background-color: var(--color-brand-soft);
-    color: var(--color-neutral-900);
+    color: var(--color-fg);
+  }
+
+  /* Numeric columns (marks, fees, attendance %) stay aligned while they
+     change — proportional digits make live-updating figures jitter. */
+  th[data-numeric],
+  td[data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .scrollbar-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background-color: var(--color-line-strong);
+    border-radius: 9999px;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Report cards, fee receipts and transcripts are printed constantly in a
+   school office — chrome is hidden and surfaces forced opaque white so the
+   dark theme doesn't burn a page of toner. */
+@media print {
+  [data-print-hide] {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-break-after {
+    break-after: page;
   }
 }

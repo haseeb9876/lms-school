@@ -1,21 +1,21 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { ShieldAlert } from "lucide-react";
+import { ErrorScreen } from "@/components/ui/ErrorScreen";
+
+export const metadata: Metadata = { title: "No access" };
 
 export default function UnauthorizedPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
-          <ShieldAlert className="h-6 w-6" aria-hidden="true" />
-        </div>
-        <h1 className="text-lg font-semibold text-neutral-900">You don&apos;t have access to this page</h1>
-        <p className="text-sm text-neutral-500">
-          Your account doesn&apos;t have permission to view this. If you think this is a mistake, contact the school principal.
-        </p>
-        <Link href="/" className="text-sm font-medium text-brand underline underline-offset-2">
-          Back to your dashboard
-        </Link>
-      </div>
-    </div>
+    <ErrorScreen
+      icon={ShieldAlert}
+      tone="warning"
+      title="You don't have access to this page"
+      description="Your account isn't assigned to this class, student or section. Access is set by the school principal — if you believe you should have it, ask them to update your assignments."
+      actions={[
+        { label: "Go to dashboard", href: "/dashboard" },
+        { label: "Raise a help desk ticket", href: "/helpdesk", variant: "secondary" },
+      ]}
+      footer="This attempt has been recorded, as every access check in the portal is."
+    />
   );
 }

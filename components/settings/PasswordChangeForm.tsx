@@ -1,76 +1,97 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { z } from "zod";
-import { passwordChangeSchema } from "@/lib/schemas/auth";
-import { InputField } from "@/components/ui/Input";
+import { useRef, useState, useTransition } from "react";
+import { KeyRound } from "lucide-react";
+import { changePassword } from "@/lib/actions/account";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Card, CardContent } from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
+import { checkPassword } from "@/lib/password-policy";
 
-type PasswordChangeValues = z.infer<typeof passwordChangeSchema>;
-
+/**
+ * Uses the app's own Server Action pattern rather than react-hook-form.
+ *
+ * The previous version used zodResolver from @hookform/resolvers v3 against
+ * Zod v4. That combination *throws* the validation error instead of
+ * returning it, and react-hook-form doesn't catch it — so submitting a
+ * too-short password did nothing at all: no request, no message, no clue.
+ * Both packages are gone; every form in this app now submits the same way.
+ */
 export function PasswordChangeForm() {
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+  const toast = useToast();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<PasswordChangeValues>({ resolver: zodResolver(passwordChangeSchema) });
+  const ready = checkPassword(newPassword).valid;
 
-  async function onSubmit(values: PasswordChangeValues) {
-    setServerError(null);
-    setSuccessMessage(null);
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/password/change", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+  function handleSubmit(formData: FormData) {
+    setFieldErrors({});
+    setSuccess(null);
+
+    startTransition(async () => {
+      const result = await changePassword({
+        currentPassword: String(formData.get("currentPassword") ?? ""),
+        newPassword: String(formData.get("newPassword") ?? ""),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setServerError(data.error ?? "Something went wrong.");
-        return;
+
+      if (result.ok) {
+        formRef.current?.reset();
+        setNewPassword("");
+        setSuccess(result.message ?? "Password changed.");
+        toast.success(result.message ?? "Password changed.");
+      } else {
+        setFieldErrors(result.fieldErrors ?? {});
+        if (!result.fieldErrors) toast.error(result.error);
       }
-      setSuccessMessage("Password changed. You're still signed in on this device.");
-      reset();
-    } catch {
-      setServerError("Could not reach the server. Check your connection and try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    });
   }
 
   return (
     <Card>
       <CardContent>
-        <h2 className="mb-4 text-sm font-semibold text-neutral-900">Change password</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-          {serverError && <Alert variant="danger">{serverError}</Alert>}
-          {successMessage && <Alert variant="success">{successMessage}</Alert>}
-          <InputField
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-fg">
+          <KeyRound className="h-4 w-4 text-fg-subtle" aria-hidden="true" />
+          Change password
+        </h2>
+        <p className="mb-4 text-sm text-fg-subtle">
+          Changing your password signs you out everywhere else.
+        </p>
+
+        <form ref={formRef} action={handleSubmit} className="flex max-w-md flex-col gap-4">
+          {success && <Alert variant="success">{success}</Alert>}
+
+          <PasswordField
+            name="currentPassword"
             label="Current password"
-            type="password"
             autoComplete="current-password"
-            error={errors.currentPassword?.message}
-            {...register("currentPassword")}
+            required
+            error={fieldErrors.currentPassword}
           />
-          <InputField
+
+          <PasswordField
+            name="newPassword"
             label="New password"
-            type="password"
             autoComplete="new-password"
-            hint="At least 10 characters."
-            error={errors.newPassword?.message}
-            {...register("newPassword")}
+            required
+            showRequirements
+            value={newPassword}
+            onValueChange={setNewPassword}
+            error={fieldErrors.newPassword}
           />
-          <Button type="submit" loading={submitting} className="self-start">
+
+          <Button
+            type="submit"
+            loading={isPending}
+            // Disabled only once something has been typed — an untouched
+            // form shouldn't present a dead button with no explanation.
+            disabled={newPassword.length > 0 && !ready}
+            className="self-start"
+          >
             Update password
           </Button>
         </form>

@@ -34,6 +34,39 @@ export async function assertOwnsStudent(session: SessionLike, studentId: string)
   throw new ApiError(403, "You don't have permission to access this student's records.", "FORBIDDEN");
 }
 
+/**
+ * Read access to one student's record.
+ *
+ * Broader than `assertOwnsStudent` because a teacher legitimately needs to
+ * open the profile of any student in a section they teach, while still
+ * being refused every student outside it. Kept separate from the ownership
+ * check so that write paths (editing a record, marking attendance) keep the
+ * stricter rule rather than inheriting this one by accident.
+ */
+export async function assertCanViewStudent(session: SessionLike, studentId: string): Promise<void> {
+  if (session.role === "PRINCIPAL") return;
+
+  if (session.role === "TEACHER") {
+    const taught = await prisma.teacherSubjectAssignment.findFirst({
+      where: { teacherId: session.userId, section: { enrollments: { some: { studentId } } } },
+      select: { id: true },
+    });
+    if (taught) return;
+
+    // A class teacher owns their section's pastoral record even for subjects
+    // somebody else teaches.
+    const classTeacher = await prisma.section.findFirst({
+      where: { classTeacherId: session.userId, enrollments: { some: { studentId } } },
+      select: { id: true },
+    });
+    if (classTeacher) return;
+
+    throw new ApiError(403, "You can only view students in the classes you teach.", "NOT_YOUR_STUDENT");
+  }
+
+  return assertOwnsStudent(session, studentId);
+}
+
 export async function assertTeachesSection(session: SessionLike, sectionId: string): Promise<void> {
   if (session.role === "PRINCIPAL") return;
   if (session.role !== "TEACHER") {
@@ -64,11 +97,32 @@ export async function assertTeachesSubjectInSection(
   }
 }
 
-/** Fee edits (invoices, payments, structures) are principal-only for now. */
-export function assertIsPrincipal(session: SessionLike): void {
-  if (session.role !== "PRINCIPAL") {
-    throw new ApiError(403, "Only the principal can do that.", "PRINCIPAL_ONLY");
+/**
+ * Marking a register is the class teacher's job, but any teacher who takes a
+ * period for that section also needs to be able to mark it (cover lessons,
+ * a class teacher on leave). Both routes are accepted here; every other
+ * teacher is refused.
+ */
+export async function assertCanMarkAttendance(session: SessionLike, sectionId: string): Promise<void> {
+  if (session.role === "PRINCIPAL") return;
+  if (session.role !== "TEACHER") {
+    throw new ApiError(403, "Only teachers can mark attendance.", "FORBIDDEN");
   }
+
+  const [subjectAssignment, classTeacherOf] = await Promise.all([
+    prisma.teacherSubjectAssignment.findFirst({
+      where: { teacherId: session.userId, sectionId },
+      select: { id: true },
+    }),
+    prisma.section.findFirst({
+      where: { id: sectionId, classTeacherId: session.userId },
+      select: { id: true },
+    }),
+  ]);
+
+  if (subjectAssignment || classTeacherOf) return;
+
+  throw new ApiError(403, "You are not assigned to this section.", "NOT_YOUR_SECTION");
 }
 
 /** Resolves the set of student ids a parent/student session is allowed to see. */
