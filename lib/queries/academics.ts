@@ -47,37 +47,39 @@ export const getSectionOptions = cache(async (): Promise<SectionOption[]> => {
   }));
 });
 
-/** Sections a teacher actually teaches — the basis for every teacher view. */
+/**
+ * The sections a teacher is responsible for — the basis for every teacher
+ * view.
+ *
+ * Two routes in, and both must be here. A teacher takes a section because
+ * they teach a subject in it, *or* because they are its class teacher.
+ * Listing only the first produced a genuine contradiction: a class teacher
+ * who taught no subject in their own form could open those students
+ * individually and mark their register (both of which check class-teacher
+ * status), while the class itself was missing from their student list and
+ * class filter. They were responsible for a class they could not see.
+ */
 export const getTeacherSectionOptions = cache(async (teacherId: string): Promise<SectionOption[]> => {
   const year = await getCurrentAcademicYear();
   if (!year) return [];
 
-  const assignments = await prisma.teacherSubjectAssignment.findMany({
-    where: { teacherId, academicYearId: year.id },
-    select: {
-      section: {
-        select: { id: true, name: true, classId: true, class: { select: { name: true, sortOrder: true } } },
-      },
+  const sections = await prisma.section.findMany({
+    where: {
+      academicYearId: year.id,
+      OR: [{ teacherAssignments: { some: { teacherId } } }, { classTeacherId: teacherId }],
     },
+    select: { id: true, name: true, classId: true, class: { select: { name: true, sortOrder: true } } },
+    orderBy: [{ class: { sortOrder: "asc" } }, { name: "asc" }],
   });
 
-  // A teacher usually teaches several subjects in the same section, so the
-  // join returns that section once per subject — collapse to unique sections.
-  const unique = new Map<string, SectionOption>();
-  for (const { section } of assignments) {
-    unique.set(section.id, {
-      id: section.id,
-      label: `${section.class.name} — ${section.name}`,
-      classId: section.classId,
-      className: section.class.name,
-      sectionName: section.name,
-      sortOrder: section.class.sortOrder,
-    });
-  }
-
-  return [...unique.values()].sort(
-    (a, b) => a.sortOrder - b.sortOrder || a.sectionName.localeCompare(b.sectionName)
-  );
+  return sections.map((section) => ({
+    id: section.id,
+    label: `${section.class.name} — ${section.name}`,
+    classId: section.classId,
+    className: section.class.name,
+    sectionName: section.name,
+    sortOrder: section.class.sortOrder,
+  }));
 });
 
 export const getSubjectOptions = cache(async () => {
