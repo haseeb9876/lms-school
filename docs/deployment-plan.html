@@ -1,0 +1,873 @@
+<title>School Portal Go-Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+  /* ---------------------------------------------------------------
+     Light palette on bare :root — the un-stamped "system" default
+     resolves from here, so every token must exist at this level.
+     --------------------------------------------------------------- */
+  :root {
+    --ground:      #F4F6F9;
+    --surface:     #FFFFFF;
+    --surface-2:   #EDF1F6;
+    --ink:         #14181F;
+    --ink-muted:   #576273;
+    --ink-faint:   #808B9C;
+    --rule:        #D8DEE7;
+    --rule-strong: #B9C3D0;
+
+    --accent:      #1F5C8B;   /* blueprint blue — structure and emphasis */
+    --accent-soft: #E3EDF5;
+    --accent-ink:  #17456A;
+
+    --signal:      #9A5B08;   /* amber — the decisions that carry weight */
+    --signal-soft: #FBF0DE;
+    --good:        #146B4C;
+    --good-soft:   #DFF0E8;
+    --critical:    #97302B;
+    --critical-soft:#FAE4E2;
+
+    --measure: 68ch;
+    --shadow: 0 1px 2px rgba(20, 24, 31, .06), 0 8px 24px -12px rgba(20, 24, 31, .14);
+  }
+
+  /* System-dark: redefine tokens only, and let an explicit light choice win. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1218;
+      --surface:     #161B23;
+      --surface-2:   #1D242E;
+      --ink:         #E4E9F0;
+      --ink-muted:   #9BA7B8;
+      --ink-faint:   #6F7B8C;
+      --rule:        #29323E;
+      --rule-strong: #3B4655;
+
+      --accent:      #72A9D8;
+      --accent-soft: #16283A;
+      --accent-ink:  #9CC6E9;
+
+      --signal:      #D9A040;
+      --signal-soft: #2E2413;
+      --good:        #5CBE94;
+      --good-soft:   #10291F;
+      --critical:    #E0817A;
+      --critical-soft:#2E1917;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  /* Explicit dark choice wins over a light OS. */
+  :root[data-theme="dark"] {
+    --ground:      #0E1218;
+    --surface:     #161B23;
+    --surface-2:   #1D242E;
+    --ink:         #E4E9F0;
+    --ink-muted:   #9BA7B8;
+    --ink-faint:   #6F7B8C;
+    --rule:        #29323E;
+    --rule-strong: #3B4655;
+
+    --accent:      #72A9D8;
+    --accent-soft: #16283A;
+    --accent-ink:  #9CC6E9;
+
+    --signal:      #D9A040;
+    --signal-soft: #2E2413;
+    --good:        #5CBE94;
+    --good-soft:   #10291F;
+    --critical:    #E0817A;
+    --critical-soft:#2E1917;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 4rem) clamp(1.1rem, 4vw, 2.5rem) 6rem;
+  }
+
+  /* ---- type ---- */
+  h1, h2, h3, .eyebrow, .phase-n {
+    font-family: Archivo, "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 5.5vw, 3.15rem);
+    line-height: 1.06;
+    letter-spacing: -.024em;
+    font-weight: 700;
+    margin: .35rem 0 0;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: clamp(1.35rem, 3vw, 1.72rem);
+    line-height: 1.2;
+    letter-spacing: -.015em;
+    font-weight: 650;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 1.02rem;
+    letter-spacing: -.006em;
+    font-weight: 600;
+    margin: 0 0 .3rem;
+    text-wrap: balance;
+  }
+  p { margin: 0; max-width: var(--measure); }
+  a { color: var(--accent-ink); text-underline-offset: 2px; }
+
+  .eyebrow {
+    font-size: .705rem;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+  .lede {
+    font-size: 1.12rem;
+    color: var(--ink-muted);
+    max-width: 62ch;
+  }
+  .small { font-size: .875rem; color: var(--ink-muted); }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: .855em;
+  }
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: .08em .34em;
+    overflow-wrap: anywhere;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---- layout ---- */
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+    padding-bottom: 1.6rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 2.6rem;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.5rem;
+    font-size: .8rem;
+    color: var(--ink-faint);
+    font-family: "IBM Plex Mono", monospace;
+  }
+  main { display: flex; flex-direction: column; gap: 3.4rem; }
+  section { display: flex; flex-direction: column; gap: 1.1rem; }
+  .sec-head { display: flex; flex-direction: column; gap: .3rem; }
+  .stack { display: flex; flex-direction: column; gap: 1.1rem; }
+  .stack-tight { display: flex; flex-direction: column; gap: .55rem; }
+
+  /* ---- panels ---- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.35rem 1.45rem;
+    box-shadow: var(--shadow);
+  }
+  .panel--flag {
+    border-color: color-mix(in srgb, var(--signal) 42%, transparent);
+    background: var(--signal-soft);
+    box-shadow: none;
+  }
+  .panel--flag h3 { color: var(--signal); }
+
+  /* ---- the headline measurement ---- */
+  .verdict {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .verdict > div {
+    background: var(--surface);
+    padding: 1.05rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: .12rem;
+  }
+  .verdict dt {
+    font-size: .715rem;
+    text-transform: uppercase;
+    letter-spacing: .11em;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+  .verdict dd {
+    margin: 0;
+    font-family: Archivo, sans-serif;
+    font-size: 1.62rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+  }
+  .verdict .hi { color: var(--critical); }
+  .verdict .lo { color: var(--good); }
+  .verdict .note { font-size: .78rem; color: var(--ink-muted); }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; border-radius: 10px; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: .9rem; }
+  th, td { text-align: left; padding: .72rem .95rem; vertical-align: top; border-bottom: 1px solid var(--rule); }
+  thead th {
+    font-family: Archivo, sans-serif;
+    font-size: .715rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--ink-faint);
+    font-weight: 600;
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  tr.pick td { background: var(--accent-soft); }
+  tr.pick td:first-child { box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+  td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---- phase rail: numbered because deployment genuinely is ordered ---- */
+  .phases { display: flex; flex-direction: column; gap: 0; }
+  .phase {
+    display: grid;
+    grid-template-columns: 3.1rem 1fr;
+    gap: 0 1.15rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .phase:first-child { border-top: 0; padding-top: .35rem; }
+  .phase-n {
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    padding-top: .12rem;
+  }
+  .phase-body { display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
+  .gate {
+    font-size: .82rem;
+    color: var(--ink-muted);
+    border-left: 2px solid var(--rule-strong);
+    padding-left: .7rem;
+  }
+  .gate b { color: var(--ink); font-weight: 600; }
+
+  ul, ol { margin: 0; padding-left: 1.15rem; max-width: var(--measure); }
+  li { margin: .28rem 0; }
+  li::marker { color: var(--ink-faint); }
+
+  .chip {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .705rem;
+    letter-spacing: .03em;
+    padding: .13rem .45rem;
+    border-radius: 4px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .chip--good { background: var(--good-soft); border-color: color-mix(in srgb, var(--good) 35%, transparent); color: var(--good); }
+  .chip--sig  { background: var(--signal-soft); border-color: color-mix(in srgb, var(--signal) 35%, transparent); color: var(--signal); }
+
+  .cmd {
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: .7rem .85rem;
+    overflow-x: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .83rem;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  .cmd .c { color: var(--ink-faint); }
+
+  .qs { display: flex; flex-direction: column; gap: .9rem; counter-reset: q; }
+  .q { display: flex; gap: .8rem; align-items: baseline; }
+  .q::before {
+    counter-increment: q;
+    content: "Q" counter(q);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    font-weight: 500;
+    color: var(--accent);
+    flex: none;
+    padding-top: .1rem;
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  @media (max-width: 560px) {
+    .phase { grid-template-columns: 1fr; gap: .45rem; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <p class="eyebrow">Deployment plan · not yet executed</p>
+    <h1>School Portal Go-Live</h1>
+    <p class="lede">
+      What to decide before the portal is deployed for The Educator School System, in what order to
+      do it, and the one choice that matters more than all the others combined.
+    </p>
+    <div class="meta">
+      <span>Next.js 16.3 · Prisma · PostgreSQL</span>
+      <span>Target: 15,000 students + guardians + staff</span>
+      <span>Peshawar, Pakistan</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ================= 1. The dominant decision ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">The decision that dominates</p>
+        <h2>Put the application and the database in the same region</h2>
+      </div>
+
+      <p>
+        This is not a tuning suggestion. On the current setup the application and the database sit
+        in different regions, and I measured what that costs with query logging switched on:
+        <strong>every single database query takes about 250&nbsp;ms, of which the database's own
+        work is negligible.</strong> It is almost entirely network time. A page that needs eight
+        queries spends two seconds waiting on the network before it renders anything.
+      </p>
+
+      <div class="verdict">
+        <div>
+          <dt>Query, cross-region</dt>
+          <dd class="hi">~250 ms</dd>
+          <span class="note">Measured, with logging on</span>
+        </div>
+        <div>
+          <dt>Query, same region</dt>
+          <dd class="lo">~2 ms</dd>
+          <span class="note">Typical for co-located Postgres</span>
+        </div>
+        <div>
+          <dt>Queries per page</dt>
+          <dd class="num">4–19</dd>
+          <span class="note">Depending on the page</span>
+        </div>
+        <div>
+          <dt>Page time today</dt>
+          <dd class="num">1.9 s</dd>
+          <span class="note">Average across 16 pages</span>
+        </div>
+      </div>
+
+      <p>
+        Two rounds of optimisation have already taken the average page from 2.9&nbsp;s to
+        1.9&nbsp;s — caching, removing N+1 relation queries, warming the connection pool. Those were
+        worth doing and they are permanent. But what remains is almost entirely round trips that
+        genuinely have to happen, and no further code change will remove them.
+      </p>
+
+      <div class="panel panel--flag">
+        <h3>The counter-intuitive part</h3>
+        <p>
+          Distance from the <em>users</em> matters far less than distance from the
+          <em>database</em>. A visitor in Peshawar pays their own network round trip once per page.
+          The server pays its round trip to the database <em>once per query</em> — four to nineteen
+          times for that same page. Co-location is therefore the first constraint; being physically
+          near Pakistan is the second, and a distant second.
+        </p>
+      </div>
+
+      <p class="small">
+        In practice this means choosing the database region and the application region together, as
+        one decision, rather than picking a host and then picking a database.
+      </p>
+    </section>
+
+    <!-- ================= 2. Where to host ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">Option analysis</p>
+        <h2>Where it should run</h2>
+      </div>
+
+      <p>
+        Four realistic shapes. The recommendation is the highlighted row, and the reasoning is
+        underneath.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>App ↔ DB latency</th>
+              <th>Ops burden</th>
+              <th>Risk</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="pick">
+              <td>Single VPS, app + Postgres on one machine, in or near Pakistan</td>
+              <td class="num">&lt; 1 ms <span class="chip chip--good">best</span></td>
+              <td>Moderate — you own patching and backups</td>
+              <td>Single machine; needs a real backup plan</td>
+              <td>Database on localhost. Removes the entire problem above. Cheapest by a wide margin.</td>
+            </tr>
+            <tr>
+              <td>Managed app + managed Postgres, same cloud region</td>
+              <td class="num">1–3 ms</td>
+              <td>Low</td>
+              <td>Vendor lock-in; cost scales with use</td>
+              <td>Good. Verify both services actually offer the same region before committing.</td>
+            </tr>
+            <tr>
+              <td>Vercel + Neon, both pinned to one region</td>
+              <td class="num">1–5 ms</td>
+              <td>Lowest</td>
+              <td>Serverless cold starts; egress cost</td>
+              <td>Works today with no code change. Requires deliberately pinning the function region.</td>
+            </tr>
+            <tr>
+              <td>Server inside the school building</td>
+              <td class="num">&lt; 1 ms</td>
+              <td>High</td>
+              <td><span class="chip chip--sig">not advised</span></td>
+              <td>Power cuts and consumer uplinks take the portal down for everyone, including at home.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h3>Why a single VPS comes first</h3>
+        <p>
+          At this school's size the workload is small. I sized it from real numbers: the busiest
+          moment of a normal day is roughly 600 teachers marking registers across a 30-minute window,
+          which is a handful of requests per second. The heaviest moment of the year is results day,
+          when perhaps 30,000 people check in one evening — still only tens of requests per second.
+        </p>
+        <p style="margin-top:.7rem">
+          That is comfortably within one modest machine. The application is not short of CPU; it is
+          short of <em>proximity to its database</em>. Running Postgres on the same host as the app
+          takes the dominant cost to zero, and it costs less than the managed options rather than
+          more. The price is that backups and updates become yours to run — which is the section
+          further down.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 3. Sizing ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">Sizing</p>
+        <h2>What 15,000 students actually costs</h2>
+      </div>
+
+      <p>
+        Extrapolated from the current database, which holds 269 students and 6,676 attendance
+        records in 17&nbsp;MB. Growing to full roll is roughly a 56× multiplier on the people and
+        their daily records.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th class="num">Today</th>
+              <th class="num">At full roll</th>
+              <th>Comment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Accounts</td>
+              <td class="num">558</td>
+              <td class="num">~31,000</td>
+              <td>15,000 students, a similar number of guardians, ~600 staff</td>
+            </tr>
+            <tr>
+              <td>Attendance rows / year</td>
+              <td class="num">6,676</td>
+              <td class="num">~3,000,000</td>
+              <td>15,000 students × ~200 school days</td>
+            </tr>
+            <tr>
+              <td>Notification rows / year</td>
+              <td class="num">79</td>
+              <td class="num">~1,500,000</td>
+              <td>A school-wide announcement writes ~31,000 rows by itself</td>
+            </tr>
+            <tr>
+              <td>Database size after year one</td>
+              <td class="num">17 MB</td>
+              <td class="num">~2–5 GB</td>
+              <td>Small. Disk is not the constraint here.</td>
+            </tr>
+            <tr>
+              <td>Uploaded images</td>
+              <td class="num">—</td>
+              <td class="num">~1–3 GB</td>
+              <td>Logo, building photo, datesheet scans at up to 12 MB each</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>A machine with 4 vCPU, 8&nbsp;GB RAM and 80&nbsp;GB SSD covers this with room to
+        spare.</strong> The one number worth watching over time is notification rows, which grow
+        fastest and are the least valuable to keep — they should be pruned after a year.
+      </p>
+
+      <div class="panel panel--flag">
+        <h3>One thing that must change before real load</h3>
+        <p>
+          Rate limiting currently falls back to an in-memory limiter when Upstash is not configured.
+          On a single VPS that is actually fine, because there is only one process. On any
+          multi-instance or serverless host it is not — each instance would count separately, and
+          the login limit of five attempts per fifteen minutes would silently become five per
+          instance. If the chosen host runs more than one instance,
+          <code>UPSTASH_REDIS_REST_URL</code> and <code>UPSTASH_REDIS_REST_TOKEN</code> are
+          mandatory, not optional.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 4. Pre-flight ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">Pre-flight</p>
+        <h2>Everything that must exist before the first deploy</h2>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Setting</th>
+              <th>Why it matters</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>JWT_SIGNING_SECRET</code></td>
+              <td>Signs every session token. A guessable value means forged sessions for any role.</td>
+              <td><span class="chip chip--sig">generate fresh</span></td>
+            </tr>
+            <tr>
+              <td><code>FIELD_ENCRYPTION_KEY</code></td>
+              <td>Encrypts every CNIC at rest. <strong>Losing it makes every CNIC unreadable and every login impossible.</strong></td>
+              <td><span class="chip chip--sig">generate + escrow</span></td>
+            </tr>
+            <tr>
+              <td><code>DATABASE_URL</code></td>
+              <td>Pooled connection. Needs <code>pgbouncer=true</code> if the host is a transaction pooler.</td>
+              <td><span class="chip">per host</span></td>
+            </tr>
+            <tr>
+              <td><code>DIRECT_URL</code></td>
+              <td>Unpooled. Migrations hang through a transaction pooler.</td>
+              <td><span class="chip">per host</span></td>
+            </tr>
+            <tr>
+              <td><code>UPLOAD_DIR</code></td>
+              <td>Where logos and datesheet scans are written. Must be on a volume that survives redeploys.</td>
+              <td><span class="chip chip--sig">persistent disk</span></td>
+            </tr>
+            <tr>
+              <td><code>RESEND_API_KEY</code> + <code>EMAIL_FROM</code></td>
+              <td>Staff password resets and email 2FA. Without it, emails are only logged to the console.</td>
+              <td><span class="chip">staff only</span></td>
+            </tr>
+            <tr>
+              <td><code>APP_URL</code></td>
+              <td>Goes into reset links. A wrong value sends people to a dead address.</td>
+              <td><span class="chip">per host</span></td>
+            </tr>
+            <tr>
+              <td>TLS certificate</td>
+              <td>Session cookies are <code>secure</code> in production — <strong>over plain HTTP nobody can sign in at all.</strong></td>
+              <td><span class="chip chip--sig">required</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h3>The encryption key deserves its own sentence</h3>
+        <p>
+          <code>FIELD_ENCRYPTION_KEY</code> is not recoverable and not derivable. If it is lost,
+          every stored CNIC becomes permanently unreadable and every account in the school is locked
+          out — there is no reset path, because the CNIC <em>is</em> the login. It must be written
+          down and stored somewhere separate from the server before the first real account is
+          created. A sealed envelope in the school safe is a legitimate answer.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 5. The sequence ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">Execution — each step gates the next</p>
+        <h2>The cutover sequence</h2>
+      </div>
+
+      <p>
+        Numbered because the order is real: each phase produces something the next one depends on,
+        and each has a condition that must hold before moving on.
+      </p>
+
+      <div class="phases">
+
+        <div class="phase">
+          <div class="phase-n">01</div>
+          <div class="phase-body">
+            <h3>Provision and pin the region</h3>
+            <p class="small">
+              Stand up the host and the database together, in one region. Confirm the latency before
+              building anything on top of it — this is the assumption the whole plan rests on, and it
+              takes one command to check.
+            </p>
+            <div class="cmd"><span class="c"># from the app host, against the real database</span><br>psql "$DATABASE_URL" -c "\timing" -c "SELECT 1" </div>
+            <p class="gate"><b>Gate:</b> a trivial query returns in single-digit milliseconds. If it reports 200&nbsp;ms+, the region pinning has not worked and nothing else is worth doing yet.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">02</div>
+          <div class="phase-body">
+            <h3>Secrets, TLS, and the email sender</h3>
+            <p class="small">
+              Generate both secrets fresh on the server, never reusing a development value. Escrow
+              the encryption key off-machine. Point the domain, issue the certificate, and verify
+              HTTPS works before anyone tries to sign in.
+            </p>
+            <div class="cmd">openssl rand -base64 48&nbsp;&nbsp;<span class="c"># JWT_SIGNING_SECRET</span><br>openssl rand -hex 32&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># FIELD_ENCRYPTION_KEY</span></div>
+            <p class="gate"><b>Gate:</b> the encryption key exists in a second location outside the server, and <code>https://</code> serves the welcome page.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">03</div>
+          <div class="phase-body">
+            <h3>Schema, and the first principal account</h3>
+            <p class="small">
+              Apply migrations with <code>prisma migrate deploy</code> — never <code>migrate
+              dev</code>, which can reset data. Then seed exactly one account: the principal. No
+              demo data on a production database, ever; it is indistinguishable from real data three
+              months later.
+            </p>
+            <div class="cmd">npx prisma migrate deploy<br>npm run db:seed&nbsp;&nbsp;<span class="c"># principal + academic year only</span></div>
+            <p class="gate"><b>Gate:</b> the principal can sign in over HTTPS and reach the dashboard.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">04</div>
+          <div class="phase-body">
+            <h3>Set up the school before the people</h3>
+            <p class="small">
+              Academic year, terms, classes and sections, subjects, fee categories, and branding.
+              All of it is enterable through the portal by the principal. Students cannot be enrolled
+              into classes that do not exist yet, so this genuinely has to come first.
+            </p>
+            <p class="gate"><b>Gate:</b> every class the school actually runs exists, with its correct name and section letters.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">05</div>
+          <div class="phase-body">
+            <h3>Staff pilot — 20 teachers, two weeks</h3>
+            <p class="small">
+              Create the teaching staff with their class assignments and timetables. Have them mark
+              real attendance, set real assignments, and enter real marks for a fortnight. No
+              students or guardians yet.
+            </p>
+            <p class="small">
+              This is the phase that finds the problems. Teachers use the app hardest, they are on
+              site to report what is wrong, and nothing they hit is visible to 15,000 families.
+            </p>
+            <p class="gate"><b>Gate:</b> two weeks with no blocking issue, and registers being marked without anyone being asked to.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">06</div>
+          <div class="phase-body">
+            <h3>One grade of students and guardians</h3>
+            <p class="small">
+              Enrol a single grade — a few hundred families. Issue credentials through the office and
+              watch what happens at the counter: how long an account takes to hand over, how many
+              people come back unable to sign in, whether the password desk holds up under a queue.
+            </p>
+            <p class="gate"><b>Gate:</b> the office can process the queue without the portal becoming the bottleneck.</p>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="phase-n">07</div>
+          <div class="phase-body">
+            <h3>The rest of the school, grade by grade</h3>
+            <p class="small">
+              Roll forward one grade at a time rather than all at once. Each grade is a fresh chance
+              to stop, and the office workload stays level instead of arriving as one impossible
+              week.
+            </p>
+            <p class="gate"><b>Gate:</b> nothing — this is the end state.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= 6. Backups ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">Keeping it</p>
+        <h2>Backups, and proving they work</h2>
+      </div>
+
+      <p>
+        This database becomes the school's record of attendance, fees and results. Losing it is not
+        an inconvenience; it is a year of paperwork that no longer exists.
+      </p>
+
+      <ul>
+        <li><strong>Nightly <code>pg_dump</code>, off the machine.</strong> A backup on the same disk as the database protects against nothing that actually happens.</li>
+        <li><strong>Thirty daily copies, twelve monthly.</strong> Corruption is often noticed weeks later, when a report looks wrong.</li>
+        <li><strong>Back up <code>UPLOAD_DIR</code> too.</strong> Datesheet scans and the school logo are not in the database.</li>
+        <li><strong>Restore one, on purpose, before go-live.</strong> An untested backup is a belief, not a backup. Restore into a scratch database and sign in against it.</li>
+        <li><strong>Store the encryption key separately from the backups.</strong> A dump restored without its key is unreadable — which is the point, and also the trap.</li>
+      </ul>
+
+      <div class="panel">
+        <h3>What "recovered" has to mean</h3>
+        <p>
+          Write down the answer before you need it: how much data the school can afford to lose
+          (nightly backups mean up to a day), and how long it may be down while restoring. A school
+          can usually tolerate a few hours offline and cannot tolerate losing a term of marks — which
+          argues for frequent dumps rather than a hot standby.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= 7. After launch ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">Once it is live</p>
+        <h2>What to watch, and what it means</h2>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Signal</th>
+              <th>Where it comes from</th>
+              <th>What it means if it moves</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/api/health</code></td>
+              <td>Built in; point any uptime monitor at it</td>
+              <td>The app cannot reach its database</td>
+            </tr>
+            <tr>
+              <td>Page response time</td>
+              <td>Reverse-proxy access log</td>
+              <td>A creep upward is almost always query count, not traffic</td>
+            </tr>
+            <tr>
+              <td>Failed logins</td>
+              <td><code>AuditLog</code>, action <code>LOGIN_FAILED</code></td>
+              <td>A spike from one address is an attack; a spread is a confusing rollout</td>
+            </tr>
+            <tr>
+              <td>Password-desk resets</td>
+              <td><code>AuditLog</code>, <code>via: recovery-desk</code></td>
+              <td>High volume means credential handover at enrolment needs fixing</td>
+            </tr>
+            <tr>
+              <td>Database size</td>
+              <td><code>pg_database_size</code></td>
+              <td>Growth is dominated by notifications; prune beyond a year</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The verification suite should run against production once, immediately after go-live, and
+        after every subsequent deploy. It checks the things that are invisible until they are
+        catastrophic — that a parent cannot open another family's records, that a teacher cannot
+        reach a class they do not teach.
+      </p>
+
+      <div class="cmd">npm run typecheck &amp;&amp; npm test&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># 61 unit tests</span><br>npm run check:auth&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># every route and action is protected</span><br>npm run rbac &amp;&amp; npm run smoke&nbsp;&nbsp;&nbsp;<span class="c"># data scoping · 91 route/role checks</span><br>npm run sessions&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># 24h desktop cap · phones stay signed in</span><br>npm run recovery&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># password desk cannot be used to enumerate</span><br>npm run datesheets&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># class datesheets stay inside their class</span></div>
+
+      <p class="small">
+        <code>smoke</code>, <code>sessions</code> and <code>recovery</code> create and delete a
+        temporary probe account. That is safe on production but it does write — run them knowingly,
+        not on a schedule.
+      </p>
+    </section>
+
+    <!-- ================= 8. Open questions ================= -->
+    <section>
+      <div class="sec-head">
+        <p class="eyebrow">Before I execute any of this</p>
+        <h2>What I need you to decide</h2>
+      </div>
+
+      <p>
+        Nothing above has been done. These are the choices only you can make, and each one changes
+        the steps.
+      </p>
+
+      <div class="qs">
+        <div class="q"><p><strong>Who will own the server?</strong> A single VPS is the best technical answer and the cheapest, but somebody has to apply security updates and confirm the backups ran. If nobody at the school can own that, the managed option is worth its higher price.</p></div>
+        <div class="q"><p><strong>What is the domain?</strong> It needs to be registered and pointed before the certificate can be issued, and it goes into every password-reset link.</p></div>
+        <div class="q"><p><strong>Where does the encryption key live?</strong> Name the second location now — not the server, and not the same place as the backups.</p></div>
+        <div class="q"><p><strong>How do students and guardians get their credentials?</strong> Printed slips at the office is the assumption the app is built around, and the phase&nbsp;06 pilot is designed to test exactly that. If you had another route in mind, it changes enrolment.</p></div>
+        <div class="q"><p><strong>Which grade goes first?</strong> Ideally one with engaged parents and a class teacher who will report problems rather than work around them.</p></div>
+        <div class="q"><p><strong>When?</strong> The start of a term is the natural moment — attendance and fees both begin cleanly, rather than half a term of records living on paper and half in the portal.</p></div>
+      </div>
+    </section>
+
+  </main>
+</div>
