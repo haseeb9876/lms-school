@@ -32,6 +32,10 @@ const PUBLIC_ROUTES = new Set([
   "app/api/auth/password-reset/request/route.ts",
   "app/api/auth/password-reset/confirm/route.ts",
   "app/api/health/route.ts",
+  // Serves the school logo and building photo, which appear on the public
+  // welcome and login screens. Bounded to the branding folder — anything
+  // else 404s whether or not it exists.
+  "app/api/files/[...path]/route.ts",
 ]);
 
 const IGNORED_DIRS = new Set(["node_modules", ".next", ".git", "dist", "build"]);

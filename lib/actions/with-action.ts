@@ -63,7 +63,23 @@ type HandlerFor<TSchema extends z.ZodTypeAny, TData> = TSchema extends z.ZodType
 /**
  * Wraps a mutation so it cannot run without an authenticated, authorized,
  * still-active user and validated input.
+ *
+ * Two shapes, because not every action's input can be described by a Zod
+ * schema: a file upload arrives as FormData, which is the only way a File
+ * can cross the Server Action boundary. Those actions declare their own
+ * input type and validate the parts by hand — the auth, role and error
+ * handling are identical either way.
  */
+export function withAction<TSchema extends z.ZodTypeAny, TData>(
+  options: ActionOptions<TSchema> & { input: TSchema },
+  handler: (input: z.infer<TSchema>, ctx: ActionContext) => Promise<ActionResult<TData>>
+): (input: z.input<TSchema>) => Promise<ActionResult<TData>>;
+
+export function withAction<TInput, TData>(
+  options: { roles: Role[] | null },
+  handler: (input: TInput, ctx: ActionContext) => Promise<ActionResult<TData>>
+): (input: TInput) => Promise<ActionResult<TData>>;
+
 export function withAction<TSchema extends z.ZodTypeAny, TData>(
   options: ActionOptions<TSchema>,
   handler: HandlerFor<TSchema, TData>

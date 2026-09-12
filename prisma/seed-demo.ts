@@ -841,7 +841,7 @@ async function main() {
         "Fee invoice for September is due",
       ]),
       body: "Open the portal to view the details.",
-      link: "/",
+      link: "/dashboard",
       createdAt: recently(rng.int(1, 96) * 3600_000),
     })),
   });

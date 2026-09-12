@@ -4,8 +4,11 @@ import { readableTextColor, softTint } from "@/lib/color";
 
 export interface BrandingSettings {
   schoolName: string;
+  tagline: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
+  /** Photograph used as the welcome screen's backdrop. */
+  buildingImageUrl: string | null;
   primaryColor: string;
   address: string | null;
   phone: string | null;
@@ -15,8 +18,10 @@ export interface BrandingSettings {
 
 const DEFAULT_BRANDING: BrandingSettings = {
   schoolName: "My School",
+  tagline: null,
   logoUrl: null,
   faviconUrl: null,
+  buildingImageUrl: null,
   primaryColor: "#0e6e68",
   address: null,
   phone: null,
@@ -33,8 +38,10 @@ const loadBranding = unstable_cache(
     if (!settings) return DEFAULT_BRANDING;
     return {
       schoolName: settings.schoolName,
+      tagline: settings.tagline,
       logoUrl: settings.logoUrl,
       faviconUrl: settings.faviconUrl,
+      buildingImageUrl: settings.buildingImageUrl,
       primaryColor: settings.primaryColor,
       address: settings.address,
       phone: settings.phone,

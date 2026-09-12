@@ -24,7 +24,7 @@ type Role = "PRINCIPAL" | "TEACHER" | "STUDENT" | "PARENT";
 /** `:id` placeholders are filled from the database before the request. */
 const ROUTES: Record<Role, string[]> = {
   PRINCIPAL: [
-    "/",
+    "/dashboard",
     "/students",
     "/students/:studentId",
     "/students/:studentId?tab=attendance",
@@ -58,7 +58,7 @@ const ROUTES: Record<Role, string[]> = {
     "/settings/profile",
   ],
   TEACHER: [
-    "/",
+    "/dashboard",
     "/students",
     "/classes",
     "/timetable",
@@ -73,7 +73,7 @@ const ROUTES: Record<Role, string[]> = {
     "/settings/security",
   ],
   STUDENT: [
-    "/",
+    "/dashboard",
     "/timetable",
     "/attendance",
     "/assignments",
@@ -84,7 +84,7 @@ const ROUTES: Record<Role, string[]> = {
     "/settings/security",
   ],
   PARENT: [
-    "/",
+    "/dashboard",
     "/children",
     "/timetable",
     "/results",

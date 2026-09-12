@@ -6,7 +6,7 @@ import { readableTextColor } from "@/lib/color";
 
 export default async function LoginPage() {
   const session = await getCurrentSession();
-  if (session) redirect("/");
+  if (session) redirect("/dashboard");
 
   const branding = await getBrandingSettings();
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/auth/tokens";
+import { roleMayAccess } from "@/lib/route-access";
 
 /**
  * Default-deny: everything requires a valid session unless explicitly
@@ -8,7 +9,9 @@ import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/auth/tokens";
  * two known paths and left every other route open) — a route that isn't
  * allowlisted is protected automatically, not by remembering to add a check.
  */
+// "/" is the public welcome screen; the dashboard lives at /dashboard.
 const PUBLIC_PAGE_PATHS = ["/login", "/forgot-password", "/reset-password", "/unauthorized"];
+const PUBLIC_EXACT_PATHS = ["/"];
 const PUBLIC_API_PATHS = [
   "/api/auth/login",
   "/api/auth/2fa/verify",
@@ -20,8 +23,17 @@ const PUBLIC_API_PATHS = [
 
 const STATIC_ASSET_PATTERN = /\.(svg|png|jpg|jpeg|gif|ico|css|js|woff2?|map)$/;
 
+/**
+ * Branding images are served to signed-out visitors because the welcome and
+ * login screens show them. The route itself only ever serves the branding
+ * folder, so this prefix does not widen access to other uploads.
+ */
+const PUBLIC_PREFIXES = ["/api/files/branding/"];
+
 function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_EXACT_PATHS.includes(pathname)) return true;
   if (PUBLIC_API_PATHS.includes(pathname)) return true;
+  if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true;
   return PUBLIC_PAGE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
@@ -86,6 +98,19 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     const response = NextResponse.redirect(loginUrl);
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  }
+
+  /*
+   * Role check before rendering starts. Pages carry their own
+   * `requireAuth`, but that runs mid-render — and since every segment now
+   * has a loading.tsx, the 200 and the skeleton have already been streamed
+   * by then, so a refusal can only be a client-side redirect. Deciding here
+   * keeps a forbidden route an honest redirect for every client.
+   */
+  if (!pathname.startsWith("/api/") && !roleMayAccess(pathname, session.role)) {
+    const response = NextResponse.redirect(new URL("/unauthorized", request.url));
     response.headers.set("Content-Security-Policy", csp);
     return response;
   }

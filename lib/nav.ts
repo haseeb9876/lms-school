@@ -47,7 +47,7 @@ const ALL_ROLES: Role[] = ["PRINCIPAL", "TEACHER", "STUDENT", "PARENT"];
 export const NAV_GROUPS: NavGroup[] = [
   {
     items: [
-      { label: "Dashboard", href: "/", icon: LayoutDashboard, roles: ALL_ROLES },
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ALL_ROLES },
     ],
   },
   {
@@ -100,10 +100,10 @@ export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
  * checks their timetable. Everything else stays one tap away under "More".
  */
 const MOBILE_PRIMARY_HREFS: Record<Role, string[]> = {
-  PRINCIPAL: ["/", "/students", "/attendance", "/fees"],
-  TEACHER: ["/", "/attendance", "/assignments", "/classes"],
-  STUDENT: ["/", "/timetable", "/assignments", "/results"],
-  PARENT: ["/", "/children", "/results", "/fees"],
+  PRINCIPAL: ["/dashboard", "/students", "/attendance", "/fees"],
+  TEACHER: ["/dashboard", "/attendance", "/assignments", "/classes"],
+  STUDENT: ["/dashboard", "/timetable", "/assignments", "/results"],
+  PARENT: ["/dashboard", "/children", "/results", "/fees"],
 };
 
 export function mobilePrimaryItems(role: Role): NavItem[] {
@@ -121,7 +121,7 @@ export function navGroupsForRole(role: Role): NavGroup[] {
 }
 
 export function isNavItemActive(item: NavItem, pathname: string): boolean {
-  if (item.href === "/") return pathname === "/";
+  if (item.href === "/dashboard") return pathname === "/dashboard";
   if (item.matchPrefix) return pathname === item.href || pathname.startsWith(`${item.href}/`);
   return pathname === item.href;
 }

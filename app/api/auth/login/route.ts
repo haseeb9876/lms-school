@@ -5,7 +5,7 @@ import { ApiError, handleApiError } from "@/lib/errors";
 import { findUserByIdentifier } from "@/lib/auth/lookup";
 import { verifyPassword } from "@/lib/crypto/passwords";
 import { createSession, signPending2FAToken } from "@/lib/auth/session";
-import { setSessionCookies, setPending2FACookie } from "@/lib/auth/cookies";
+import { setSessionCookies, setPending2FACookie, markReturningVisitor } from "@/lib/auth/cookies";
 import { issueOtpCode } from "@/lib/auth/two-factor";
 import { sendEmail } from "@/lib/email";
 import { prisma } from "@/lib/db";
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       ip,
     });
     await setSessionCookies(accessToken, refreshToken);
+    await markReturningVisitor();
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await logAudit({ actorId: user.id, action: "LOGIN_SUCCESS", req });
 

@@ -2,26 +2,36 @@
 
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { ErrorScreen } from "@/components/ui/ErrorScreen";
 
-export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+/**
+ * Catches render errors inside the app. `digest` is the id Next.js also
+ * writes to the server log, so quoting it back gives the school office
+ * something to search for — the actual message is withheld in production
+ * because it can carry internal detail.
+ */
+export default function AppError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   useEffect(() => {
     console.error(error);
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-sunken px-4">
-      <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
-          <AlertTriangle className="h-6 w-6" aria-hidden="true" />
-        </div>
-        <h1 className="text-lg font-semibold text-fg">Something went wrong</h1>
-        <p className="text-sm text-fg-subtle">
-          {error.digest ? `Reference: ${error.digest}. ` : ""}
-          Try again, or contact support if it keeps happening.
-        </p>
-        <Button onClick={reset}>Try again</Button>
-      </div>
-    </div>
+    <ErrorScreen
+      icon={AlertTriangle}
+      tone="danger"
+      title="Something went wrong"
+      description="This page didn't load properly. Trying again usually fixes it — if it keeps happening, send the reference below to the school office."
+      reference={error.digest}
+      actions={[
+        { label: "Try again", onClick: reset },
+        { label: "Go to dashboard", href: "/dashboard", variant: "secondary" },
+      ]}
+    />
   );
 }

@@ -3,6 +3,12 @@ import { isValidHexColor, isBrandColorAccessible } from "@/lib/color";
 
 export const brandingUpdateSchema = z.object({
   schoolName: z.string().trim().min(2, "School name must be at least 2 characters.").max(100),
+  tagline: z
+    .string()
+    .trim()
+    .max(120, "Keep the tagline under 120 characters.")
+    .optional()
+    .or(z.literal("")),
   primaryColor: z
     .string()
     .trim()

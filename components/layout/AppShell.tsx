@@ -54,7 +54,7 @@ export function AppShell({
         data-print-hide
         className="sticky top-0 hidden h-dvh w-64 flex-none flex-col gap-6 border-r border-line bg-surface p-4 md:flex"
       >
-        <Link href="/" className="flex items-center gap-2 rounded-md px-1 py-0.5">
+        <Link href="/dashboard" className="flex items-center gap-2 rounded-md px-1 py-0.5">
           {mark}
           <span className="truncate text-sm font-semibold text-fg">{branding.schoolName}</span>
         </Link>
@@ -71,7 +71,7 @@ export function AppShell({
           data-print-hide
           className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/90 px-4 py-2.5 backdrop-blur-sm"
         >
-          <Link href="/" className="flex items-center gap-2 md:hidden">
+          <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
             {mark}
             <span className="truncate text-sm font-semibold text-fg">{branding.schoolName}</span>
           </Link>

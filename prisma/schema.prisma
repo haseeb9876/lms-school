@@ -671,17 +671,21 @@ model DeskTicketMessage {
 
 // Singleton row (application layer enforces a single row, id always "school").
 model SchoolSettings {
-  id           String   @id @default("school")
-  schoolName   String   @default("My School")
-  logoUrl      String?
-  faviconUrl   String?
-  primaryColor String   @default("#0E6E68")
-  address      String?
-  phone        String?
-  email        String?
-  website      String?
-  updatedById  String?
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default("school")
+  schoolName       String   @default("My School")
+  logoUrl          String?
+  faviconUrl       String?
+  /// Photograph of the school, used as the welcome screen's backdrop.
+  buildingImageUrl String?
+  /// One line shown under the school name on the welcome screen.
+  tagline          String?
+  primaryColor     String   @default("#0E6E68")
+  address          String?
+  phone            String?
+  email            String?
+  website          String?
+  updatedById      String?
+  updatedAt        DateTime @updatedAt
 }
 
 enum AuditAction {

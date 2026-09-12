@@ -1,19 +1,17 @@
-import Link from "next/link";
 import { Compass } from "lucide-react";
+import { ErrorScreen } from "@/components/ui/ErrorScreen";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-sunken px-4">
-      <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-hover text-fg-muted">
-          <Compass className="h-6 w-6" aria-hidden="true" />
-        </div>
-        <h1 className="text-lg font-semibold text-fg">Page not found</h1>
-        <p className="text-sm text-fg-subtle">The page you&apos;re looking for doesn&apos;t exist or may have moved.</p>
-        <Link href="/" className="text-sm font-medium text-brand underline underline-offset-2">
-          Back to your dashboard
-        </Link>
-      </div>
-    </div>
+    <ErrorScreen
+      icon={Compass}
+      tone="neutral"
+      title="Page not found"
+      description="This page doesn't exist, or the link that brought you here is out of date. It may also be a record that has since been removed."
+      actions={[
+        { label: "Go to dashboard", href: "/dashboard" },
+        { label: "Back to welcome", href: "/", variant: "secondary" },
+      ]}
+    />
   );
 }

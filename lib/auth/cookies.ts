@@ -8,6 +8,29 @@ import {
 
 const isProd = process.env.NODE_ENV === "production";
 
+/**
+ * Records that this browser has signed in before, so the welcome screen can
+ * offer "Access portal" instead of "Sign in".
+ *
+ * Deliberately carries no identity — just the fact that someone has used
+ * this device before. It outlives the session on purpose: the point is to
+ * recognise a returning family whose session expired weeks ago. Not
+ * httpOnly-sensitive, but set httpOnly anyway since only the server reads it.
+ */
+export const RETURNING_COOKIE = "lms-returning";
+const RETURNING_MAX_AGE = 60 * 60 * 24 * 365;
+
+export async function markReturningVisitor() {
+  const store = await cookies();
+  store.set(RETURNING_COOKIE, "1", {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    path: "/",
+    maxAge: RETURNING_MAX_AGE,
+  });
+}
+
 export async function setSessionCookies(accessToken: string, refreshToken: string) {
   const store = await cookies();
   store.set(ACCESS_COOKIE, accessToken, {

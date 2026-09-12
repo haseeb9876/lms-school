@@ -20,7 +20,6 @@
     "smoke": "tsx scripts/smoke-check.ts"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "^5.22.0",
     "@react-pdf/renderer": "^4.3.1",
     "@upstash/ratelimit": "^2.0.5",
@@ -37,7 +36,6 @@
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-hook-form": "^7.63.0",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
