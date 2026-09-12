@@ -18,7 +18,8 @@
     "test": "vitest run",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
     "smoke": "tsx scripts/smoke-check.ts",
-    "rbac": "tsx scripts/rbac-check.ts"
+    "rbac": "tsx scripts/rbac-check.ts",
+    "dev:queries": "PRISMA_LOG_QUERIES=1 next dev"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

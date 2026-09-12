@@ -28,57 +28,76 @@ export interface SectionOption {
 
 /** All sections in the current year, ordered the way a school lists them. */
 export const getSectionOptions = cache(async (): Promise<SectionOption[]> => {
-  const year = await getCurrentAcademicYear();
-  if (!year) return [];
+  /*
+   * One query, not two. The obvious version looks up the current year and
+   * then its sections, but those are sequential round trips against a
+   * database far enough away that each costs ~260ms — and this list is
+   * loaded by nearly every page that has a class filter. Joining the year
+   * in makes it a single trip.
+   */
+  const rows = await prisma.$queryRaw<
+    { id: string; name: string; class_id: string; class_name: string; sort_order: number }[]
+  >`
+    SELECT sec.id,
+           sec.name,
+           sec."classId"  AS class_id,
+           c.name         AS class_name,
+           c."sortOrder"  AS sort_order
+    FROM "Section" sec
+    JOIN "Class" c        ON c.id = sec."classId"
+    JOIN "AcademicYear" y ON y.id = sec."academicYearId"
+    WHERE y."isCurrent" = TRUE
+    ORDER BY c."sortOrder" ASC, sec.name ASC
+  `;
 
-  const sections = await prisma.section.findMany({
-    where: { academicYearId: year.id },
-    select: { id: true, name: true, classId: true, class: { select: { name: true, sortOrder: true } } },
-    orderBy: [{ class: { sortOrder: "asc" } }, { name: "asc" }],
-  });
-
-  return sections.map((section) => ({
-    id: section.id,
-    label: `${section.class.name} — ${section.name}`,
-    classId: section.classId,
-    className: section.class.name,
-    sectionName: section.name,
-    sortOrder: section.class.sortOrder,
+  return rows.map((row) => ({
+    id: row.id,
+    label: `${row.class_name} — ${row.name}`,
+    classId: row.class_id,
+    className: row.class_name,
+    sectionName: row.name,
+    sortOrder: row.sort_order,
   }));
 });
 
-/**
- * The sections a teacher is responsible for — the basis for every teacher
- * view.
- *
- * Two routes in, and both must be here. A teacher takes a section because
- * they teach a subject in it, *or* because they are its class teacher.
- * Listing only the first produced a genuine contradiction: a class teacher
- * who taught no subject in their own form could open those students
- * individually and mark their register (both of which check class-teacher
- * status), while the class itself was missing from their student list and
- * class filter. They were responsible for a class they could not see.
- */
 export const getTeacherSectionOptions = cache(async (teacherId: string): Promise<SectionOption[]> => {
-  const year = await getCurrentAcademicYear();
-  if (!year) return [];
+  /*
+   * Both routes a teacher can hold a class by, in one query: they teach a
+   * subject in it, or they are its class teacher. Listing only the first
+   * produced a genuine contradiction — a class teacher who taught no
+   * subject in their own form could open those students and mark their
+   * register, while the class was missing from their student list.
+   */
+  const rows = await prisma.$queryRaw<
+    { id: string; name: string; class_id: string; class_name: string; sort_order: number }[]
+  >`
+    SELECT DISTINCT
+           sec.id,
+           sec.name,
+           sec."classId" AS class_id,
+           c.name        AS class_name,
+           c."sortOrder" AS sort_order
+    FROM "Section" sec
+    JOIN "Class" c        ON c.id = sec."classId"
+    JOIN "AcademicYear" y ON y.id = sec."academicYearId"
+    WHERE y."isCurrent" = TRUE
+      AND (
+        sec."classTeacherId" = ${teacherId}
+        OR EXISTS (
+          SELECT 1 FROM "TeacherSubjectAssignment" tsa
+          WHERE tsa."sectionId" = sec.id AND tsa."teacherId" = ${teacherId}
+        )
+      )
+    ORDER BY c."sortOrder" ASC, sec.name ASC
+  `;
 
-  const sections = await prisma.section.findMany({
-    where: {
-      academicYearId: year.id,
-      OR: [{ teacherAssignments: { some: { teacherId } } }, { classTeacherId: teacherId }],
-    },
-    select: { id: true, name: true, classId: true, class: { select: { name: true, sortOrder: true } } },
-    orderBy: [{ class: { sortOrder: "asc" } }, { name: "asc" }],
-  });
-
-  return sections.map((section) => ({
-    id: section.id,
-    label: `${section.class.name} — ${section.name}`,
-    classId: section.classId,
-    className: section.class.name,
-    sectionName: section.name,
-    sortOrder: section.class.sortOrder,
+  return rows.map((row) => ({
+    id: row.id,
+    label: `${row.class_name} — ${row.name}`,
+    classId: row.class_id,
+    className: row.class_name,
+    sectionName: row.name,
+    sortOrder: row.sort_order,
   }));
 });
 
