@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { requireAuth } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/db";
 import { PrincipalDashboard } from "@/components/dashboards/PrincipalDashboard";
 import { TeacherDashboard } from "@/components/dashboards/TeacherDashboard";
 import { StudentDashboard } from "@/components/dashboards/StudentDashboard";
 import { ParentDashboard } from "@/components/dashboards/ParentDashboard";
+
+export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const session = await requireAuth();

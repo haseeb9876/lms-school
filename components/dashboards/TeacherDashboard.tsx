@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { Greeting } from "./Greeting";
+import { UpcomingDatesheetBanner } from "@/components/datesheets/UpcomingDatesheetBanner";
 import { currentDayOfWeek } from "@/components/timetable/TimetableGrid";
 
 export async function TeacherDashboard({
@@ -63,7 +64,7 @@ export async function TeacherDashboard({
   return (
     <div className="flex flex-col gap-6">
       <Greeting name={userName} subtitle={`You have ${todaysPeriods.length} period${todaysPeriods.length === 1 ? "" : "s"} today.`} />
-
+      <UpcomingDatesheetBanner userId={userId} role="TEACHER" />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="My classes" value={sections.length} icon={BookOpen} tone="brand" href="/classes" />
         <StatCard label="Students" value={studentCount} icon={Users} tone="info" href="/students" />

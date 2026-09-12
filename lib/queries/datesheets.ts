@@ -277,3 +277,70 @@ function startOfToday(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
+
+/**
+ * The soonest upcoming datesheet this viewer can see, in one query.
+ *
+ * A dashboard-only variant of the visibility rule. The general version
+ * resolves the viewer's sections first and then filters on the result,
+ * which is two serial round trips — and against a database ~250ms away that
+ * is half a second added to the most-loaded page in the app, four times per
+ * role. Expressing "a class this person belongs to" as a relation filter
+ * instead collapses it to one.
+ *
+ * The rule itself is the same one `datesheetVisibilityWhere` applies; it is
+ * restated here in relational form rather than duplicated in spirit, and
+ * `scripts/datesheet-check.ts` asserts the two agree.
+ */
+export function viewerSectionFilter(userId: string, role: Role): Prisma.SectionWhereInput | null {
+  switch (role) {
+    case "STUDENT":
+      return { enrollments: { some: { status: "ACTIVE", student: { userId } } } };
+    case "PARENT":
+      return {
+        enrollments: {
+          some: { status: "ACTIVE", student: { parentLinks: { some: { parentId: userId } } } },
+        },
+      };
+    case "TEACHER":
+      // Both routes a teacher holds a class by — teaching a subject in it,
+      // or being its class teacher.
+      return {
+        OR: [{ classTeacherId: userId }, { teacherAssignments: { some: { teacherId: userId } } }],
+      };
+    default:
+      return null;
+  }
+}
+
+export async function getUpcomingDatesheet(
+  userId: string,
+  role: Role,
+  from: Date
+): Promise<{ id: string; title: string; startsOn: Date } | null> {
+  const audiences = audiencesVisibleTo(role);
+  const sectionFilter = viewerSectionFilter(userId, role);
+
+  const scope: Prisma.ExamDatesheetWhereInput =
+    role === "PRINCIPAL"
+      ? {}
+      : {
+          audience: { in: audiences },
+          OR: [
+            { sectionId: null },
+            ...(sectionFilter ? [{ section: sectionFilter }] : []),
+          ],
+        };
+
+  const row = await prisma.examDatesheet.findFirst({
+    where: {
+      AND: [scope, { status: "PUBLISHED" }, { startsOn: { gte: from } }],
+    },
+    // Soonest first, not most recently published — what matters is which
+    // examinations arrive next.
+    orderBy: { startsOn: "asc" },
+    select: { id: true, title: true, startsOn: true },
+  });
+
+  return row?.startsOn ? { id: row.id, title: row.title, startsOn: row.startsOn } : null;
+}

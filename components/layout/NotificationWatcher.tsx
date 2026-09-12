@@ -43,7 +43,30 @@ export function NotificationWatcher({
     checking.current = true;
 
     try {
-      const result = await loadNotifications(undefined);
+      let result = await loadNotifications(undefined);
+
+      /*
+       * A long-open tab is the normal case here — a principal leaves the
+       * dashboard up all morning — and the access token behind it lasts
+       * fifteen minutes. Without this the poll would start failing quietly
+       * and the app would simply stop announcing anything until the next
+       * click, which reads as notifications being broken.
+       *
+       * Navigation renews through the proxy; this is the same renewal for a
+       * page nobody is navigating. If it cannot be renewed the session is
+       * genuinely over — the 24-hour ceiling on a computer, or a sign-out
+       * elsewhere — and saying so beats a page that looks signed in and
+       * silently is not.
+       */
+      if (!result.ok && result.code === "NOT_AUTHENTICATED") {
+        const renewed = await fetch("/api/auth/refresh", { method: "POST" });
+        if (!renewed.ok) {
+          window.location.href = "/login?reason=expired";
+          return;
+        }
+        result = await loadNotifications(undefined);
+      }
+
       if (!result.ok) return;
 
       const { items, unreadCount } = result.data;

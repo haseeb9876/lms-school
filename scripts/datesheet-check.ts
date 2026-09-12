@@ -16,6 +16,7 @@ import {
   listDatesheets,
   findVisibleDatesheetPage,
   sectionsForViewer,
+  getUpcomingDatesheet,
 } from "../lib/queries/datesheets";
 import { resolveRecipients } from "../lib/queries/audiences";
 
@@ -277,6 +278,62 @@ async function main(): Promise<void> {
       check("so is the school-wide one", narrowed.rows.some((r) => r.id === wide.id));
     } finally {
       await prisma.examDatesheet.delete({ where: { id: wide.id } });
+    }
+    console.log("\nH. The dashboard banner agrees with the full visibility rule");
+    /*
+     * The banner uses a second, relational form of the same rule so it can
+     * run in one round trip instead of two. Two expressions of one rule is
+     * exactly how a class's datesheet ends up on the wrong dashboard, so
+     * they are checked against each other rather than trusted to match.
+     */
+    await prisma.examDatesheet.update({
+      where: { id: draft.id },
+      data: { startsOn: new Date("2099-01-01") },
+    });
+
+    const personas: [string, string, "STUDENT" | "PARENT" | "TEACHER" | "PRINCIPAL"][] = [
+      ["targeted student", insiderId, "STUDENT"],
+      ["outsider student", outsider.userId, "STUDENT"],
+      ["principal", principal.id, "PRINCIPAL"],
+    ];
+
+    const targetedGuardian = await prisma.parentStudentLink.findFirst({
+      where: { student: { user: { id: insiderId } } },
+      select: { parentId: true },
+    });
+    if (targetedGuardian) personas.push(["targeted guardian", targetedGuardian.parentId, "PARENT"]);
+
+    const classTeacher = await prisma.section.findUnique({
+      where: { id: target.id },
+      select: { classTeacherId: true },
+    });
+    if (classTeacher?.classTeacherId) {
+      personas.push(["its class teacher", classTeacher.classTeacherId, "TEACHER"]);
+    }
+
+    const unrelatedTeacher = await prisma.user.findFirst({
+      where: {
+        role: "TEACHER",
+        NOT: {
+          OR: [
+            { classesAsTeacher: { some: { id: target.id } } },
+            { teacherAssignments: { some: { sectionId: target.id } } },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    if (unrelatedTeacher) personas.push(["an unrelated teacher", unrelatedTeacher.id, "TEACHER"]);
+
+    for (const [label, userId, role] of personas) {
+      const viaFullRule = (await getDatesheet(draft.id, { userId, role })) !== null;
+      const viaBanner =
+        (await getUpcomingDatesheet(userId, role, new Date("2098-01-01")))?.id === draft.id;
+      check(
+        `${label}: banner and page agree (${viaFullRule ? "visible" : "hidden"})`,
+        viaFullRule === viaBanner,
+        `page=${viaFullRule} banner=${viaBanner}`
+      );
     }
   } finally {
     await prisma.examDatesheet.delete({ where: { id: draft.id } });

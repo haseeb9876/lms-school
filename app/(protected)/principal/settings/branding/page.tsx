@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { SCHOOL_SETTINGS_ID } from "@/lib/branding";
 import { BrandingSettingsForm } from "@/components/settings/BrandingSettingsForm";
+
+export const metadata: Metadata = { title: "School Settings" };
 
 export default async function BrandingSettingsPage() {
   const settings = await prisma.schoolSettings.findUnique({ where: { id: SCHOOL_SETTINGS_ID } });
