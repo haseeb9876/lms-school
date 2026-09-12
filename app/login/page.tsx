@@ -1,44 +1,27 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/auth/current-user";
-import { getBrandingSettings } from "@/lib/branding";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { readableTextColor } from "@/lib/color";
+
+export const metadata: Metadata = { title: "Sign in" };
 
 export default async function LoginPage() {
   const session = await getCurrentSession();
   if (session) redirect("/dashboard");
 
-  const branding = await getBrandingSettings();
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-sunken px-4 py-12">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          {branding.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={branding.logoUrl}
-              alt={branding.schoolName}
-              className="h-14 w-14 rounded-xl object-cover shadow-soft"
-            />
-          ) : (
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold shadow-soft"
-              style={{ background: branding.primaryColor, color: readableTextColor(branding.primaryColor) }}
-            >
-              {branding.schoolName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <h1 className="text-xl font-semibold text-fg">{branding.schoolName}</h1>
-            <p className="text-sm text-fg-subtle">Sign in to your account</p>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-line bg-surface-raised p-6 shadow-soft">
-          <LoginForm />
-        </div>
-      </div>
-    </div>
+    <AuthShell
+      title="Sign in"
+      subtitle="Use the CNIC and password issued by the school office."
+      footer={
+        <Link href="/" className="font-medium text-brand underline underline-offset-2">
+          Back to welcome
+        </Link>
+      }
+    >
+      <LoginForm />
+    </AuthShell>
   );
 }

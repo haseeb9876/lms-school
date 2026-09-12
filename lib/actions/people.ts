@@ -1,11 +1,12 @@
 "use server";
+import { z } from "zod";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { hashPassword } from "@/lib/crypto/passwords";
 import { generateTempPassword } from "@/lib/crypto/temp-password";
-import { blindIndex, encryptField } from "@/lib/crypto/encryption";
+import { blindIndex, decryptField, encryptField } from "@/lib/crypto/encryption";
 import { normalizePhone } from "@/lib/crypto/identifiers";
 import { getCurrentAcademicYear } from "@/lib/queries/academics";
 import { createStudentSchema, createTeacherSchema, setUserStatusSchema } from "@/lib/schemas/people";
@@ -262,6 +263,71 @@ export const createTeacher = withAction(
     return actionOk(
       { teacherId: teacher.id, credentials: { cnic: input.cnic, password } },
       `${input.name} added to staff.`
+    );
+  }
+);
+
+/**
+ * Issues a new temporary password for someone who can't sign in.
+ *
+ * This is the reset path that actually gets used in a school: the
+ * email-link route only works for accounts with an email on file, and in
+ * practice that is staff only — every student and guardian is issued
+ * credentials at the office. A parent who has forgotten their password
+ * phones the school, and this is what the office does about it.
+ *
+ * The new password is returned once, for handover, and never stored in
+ * readable form. Existing sessions are revoked, so a reset also serves as
+ * "lock this account out now" when a login is suspected compromised.
+ */
+export const resetUserPassword = withAction(
+  { roles: ["PRINCIPAL"], input: z.object({ userId: z.string().min(1) }) },
+  async (input, ctx) => {
+    if (input.userId === ctx.user.id) {
+      return actionError("Use Account Security to change your own password.", {
+        code: "SELF_RESET",
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { id: true, name: true, role: true, cnic: true },
+    });
+    if (!user) return actionError("That account no longer exists.", { code: "NOT_FOUND" });
+
+    const password = generateTempPassword();
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: await hashPassword(password), mustChangePassword: true },
+      }),
+      // Any live session is ended: a reset must take effect immediately,
+      // not whenever the current access token happens to expire.
+      prisma.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      // Outstanding email reset links are void too, or an old link could
+      // still be used to set a different password afterwards.
+      prisma.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    await logAudit({
+      actorId: ctx.user.id,
+      action: "PASSWORD_RESET_COMPLETED",
+      targetType: "User",
+      targetId: user.id,
+      // Never the password itself.
+      metadata: { role: user.role, issuedByPrincipal: true },
+    });
+
+    return actionOk(
+      { name: user.name, cnic: decryptField(user.cnic), password },
+      `New password issued for ${user.name}.`
     );
   }
 );
