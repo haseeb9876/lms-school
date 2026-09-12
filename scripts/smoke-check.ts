@@ -55,6 +55,7 @@ const ROUTES: Record<Role, string[]> = {
     "/settings/academic?tab=staffing",
     "/principal/settings/branding",
     "/settings/security",
+    "/settings/notifications",
     "/settings/profile",
   ],
   TEACHER: [
@@ -71,6 +72,7 @@ const ROUTES: Record<Role, string[]> = {
     "/announcements",
     "/helpdesk",
     "/settings/security",
+    "/settings/notifications",
   ],
   STUDENT: [
     "/dashboard",
@@ -82,6 +84,7 @@ const ROUTES: Record<Role, string[]> = {
     "/announcements",
     "/helpdesk",
     "/settings/security",
+    "/settings/notifications",
   ],
   PARENT: [
     "/dashboard",
@@ -93,6 +96,7 @@ const ROUTES: Record<Role, string[]> = {
     "/announcements",
     "/helpdesk",
     "/settings/security",
+    "/settings/notifications",
   ],
 };
 

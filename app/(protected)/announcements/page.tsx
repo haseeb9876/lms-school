@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Megaphone } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { listAnnouncements } from "@/lib/queries/announcements";
+import { audienceLabel, audienceOptionsFor } from "@/lib/queries/audiences";
 import { getSectionOptions, getTeacherSectionOptions } from "@/lib/queries/academics";
 import { buildHref, readPage, type RawSearchParams } from "@/lib/search-params";
-import { formatDateTime, formatRelativeTime, humanizeEnum } from "@/lib/format";
+import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
@@ -15,15 +16,6 @@ import { DeleteAnnouncementButton } from "@/components/announcements/DeleteAnnou
 
 export const metadata: Metadata = { title: "Announcements" };
 
-const AUDIENCE_LABELS: Record<string, string> = {
-  ALL: "Everyone",
-  PRINCIPAL: "Principal",
-  TEACHERS: "Teachers",
-  STUDENTS: "Students",
-  PARENTS: "Guardians",
-  SECTION: "One class",
-};
-
 export default async function AnnouncementsPage({
   searchParams,
 }: {
@@ -33,7 +25,11 @@ export default async function AnnouncementsPage({
   const params = await searchParams;
   const page = readPage(params);
 
-  const { announcements, total, pageSize } = await listAnnouncements({ role: session.role, page });
+  const { announcements, total, pageSize } = await listAnnouncements({
+    userId: session.userId,
+    role: session.role,
+    page,
+  });
 
   const canPublish = session.role === "PRINCIPAL" || session.role === "TEACHER";
   const sections = canPublish
@@ -51,6 +47,7 @@ export default async function AnnouncementsPage({
           canPublish ? (
             <NewAnnouncementButton
               role={session.role}
+              audiences={audienceOptionsFor(session.role)}
               sections={sections.map((s) => ({ value: s.id, label: s.label }))}
             />
           ) : undefined
@@ -88,7 +85,11 @@ export default async function AnnouncementsPage({
                 </div>
                 <div className="flex flex-none items-center gap-2">
                   <Badge variant="brand">
-                    {AUDIENCE_LABELS[announcement.audience] ?? humanizeEnum(announcement.audience)}
+                    {announcement.sectionLabel
+                      ? `${announcement.sectionLabel}${
+                          announcement.audience === "SECTION_TEACHERS" ? " · teachers" : ""
+                        }`
+                      : audienceLabel(announcement.audience)}
                   </Badge>
                   {session.role === "PRINCIPAL" && (
                     <DeleteAnnouncementButton id={announcement.id} title={announcement.title} />

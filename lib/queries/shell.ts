@@ -5,6 +5,10 @@ export interface ShellUser {
   name: string;
   /** Unread notifications, for the bell badge. */
   unreadCount: number;
+  /** Whether new notifications should chime while the app is open. */
+  soundEnabled: boolean;
+  /** Master switch — when off, nothing is watched for at all. */
+  notificationsEnabled: boolean;
 }
 
 /**
@@ -27,8 +31,16 @@ export const getShellUser = cache(async (userId: string): Promise<ShellUser> => 
     select: {
       name: true,
       _count: { select: { notifications: { where: { readAt: null } } } },
+      // A missing settings row means "never changed anything", which is
+      // every default on — not silence.
+      notificationSetting: { select: { enabled: true, soundEnabled: true } },
     },
   });
 
-  return { name: user.name, unreadCount: user._count.notifications };
+  return {
+    name: user.name,
+    unreadCount: user._count.notifications,
+    soundEnabled: user.notificationSetting?.soundEnabled ?? true,
+    notificationsEnabled: user.notificationSetting?.enabled ?? true,
+  };
 });

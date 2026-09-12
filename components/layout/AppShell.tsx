@@ -5,6 +5,7 @@ import { NavLinks } from "./NavLinks";
 import { MobileTabBar } from "./MobileTabBar";
 import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
+import { NotificationWatcher } from "./NotificationWatcher";
 import { readableTextColor } from "@/lib/color";
 import type { BrandingSettings } from "@/lib/branding";
 
@@ -18,12 +19,16 @@ export function AppShell({
   userName,
   branding,
   unreadCount,
+  soundEnabled,
+  notificationsEnabled,
   children,
 }: {
   role: Role;
   userName: string;
   branding: BrandingSettings;
   unreadCount: number;
+  soundEnabled: boolean;
+  notificationsEnabled: boolean;
   children: ReactNode;
 }) {
   const mark = branding.logoUrl ? (
@@ -92,6 +97,11 @@ export function AppShell({
       </div>
 
       <MobileTabBar role={role} />
+
+      {/* Nothing is polled for at all when alerts are switched off. */}
+      {notificationsEnabled && (
+        <NotificationWatcher initialUnread={unreadCount} soundEnabled={soundEnabled} />
+      )}
     </div>
   );
 }

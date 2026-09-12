@@ -41,7 +41,7 @@ export async function PrincipalDashboard({
       getAttendanceOverview(sections.map((section) => section.id), todayUtc),
       getAttendanceTrend("ALL", 21),
       getFeeSummary(session),
-      getRecentAnnouncements("PRINCIPAL", 3),
+      getRecentAnnouncements(session.userId, "PRINCIPAL", 3),
     ]);
 
   const pendingRegisters = overview.filter((row) => row.markedCount === null);

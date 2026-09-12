@@ -67,22 +67,23 @@ model User {
 
   parentLinks ParentStudentLink[] @relation("ParentLinks")
 
-  teacherAssignments TeacherSubjectAssignment[]
-  classesAsTeacher   Section[]                  @relation("SectionClassTeacher")
-  timetableSlots     TimetableSlot[]
-  markedAttendance   AttendanceRecord[]         @relation("AttendanceMarkedBy")
-  assignmentsCreated Assignment[]               @relation("AssignmentTeacher")
-  submissionsGraded  Submission[]               @relation("SubmissionGradedBy")
-  examsCreated       Exam[]                     @relation("ExamCreatedBy")
-  examResultsEntered ExamResult[]               @relation("ExamResultEnteredBy")
-  invoicesIssued     FeeInvoice[]               @relation("InvoiceIssuedBy")
-  paymentsReceived   FeePayment[]               @relation("PaymentReceivedBy")
-  announcementsMade  Announcement[]             @relation("AnnouncementAuthor")
-  notifications      Notification[]
-  ticketsRaised      DeskTicket[]               @relation("TicketRaisedBy")
-  ticketsAssigned    DeskTicket[]               @relation("TicketAssignedTo")
-  ticketMessages     DeskTicketMessage[]
-  auditLogEntries    AuditLog[]                 @relation("AuditActor")
+  teacherAssignments  TeacherSubjectAssignment[]
+  classesAsTeacher    Section[]                  @relation("SectionClassTeacher")
+  timetableSlots      TimetableSlot[]
+  markedAttendance    AttendanceRecord[]         @relation("AttendanceMarkedBy")
+  assignmentsCreated  Assignment[]               @relation("AssignmentTeacher")
+  submissionsGraded   Submission[]               @relation("SubmissionGradedBy")
+  examsCreated        Exam[]                     @relation("ExamCreatedBy")
+  examResultsEntered  ExamResult[]               @relation("ExamResultEnteredBy")
+  invoicesIssued      FeeInvoice[]               @relation("InvoiceIssuedBy")
+  paymentsReceived    FeePayment[]               @relation("PaymentReceivedBy")
+  announcementsMade   Announcement[]             @relation("AnnouncementAuthor")
+  notifications       Notification[]
+  notificationSetting NotificationSetting?
+  ticketsRaised       DeskTicket[]               @relation("TicketRaisedBy")
+  ticketsAssigned     DeskTicket[]               @relation("TicketAssignedTo")
+  ticketMessages      DeskTicketMessage[]
+  auditLogEntries     AuditLog[]                 @relation("AuditActor")
 
   @@index([role])
   @@index([status])
@@ -579,7 +580,15 @@ enum AnnouncementAudience {
   TEACHERS
   STUDENTS
   PARENTS
+  /// One class's students.
   SECTION
+  /// Everyone taught and teaching, but not guardians.
+  STUDENTS_AND_TEACHERS
+  /// One class's students together with their guardians — the right target
+  /// for a datesheet or a holiday, which a parent needs as much as a child.
+  SECTION_WITH_GUARDIANS
+  /// The teachers who take one particular class.
+  SECTION_TEACHERS
 }
 
 model Announcement {
@@ -604,6 +613,28 @@ enum NotificationType {
   ASSIGNMENT
   DESK_TICKET
   SYSTEM
+}
+
+/// Per-user control over what reaches them and whether it makes a sound.
+/// A row is created on first use; absence means "every default is on".
+model NotificationSetting {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Master switch for the in-app bell.
+  enabled      Boolean @default(true)
+  /// Plays a short chime when something new arrives while the app is open.
+  soundEnabled Boolean @default(true)
+
+  announcements Boolean @default(true)
+  grades        Boolean @default(true)
+  attendance    Boolean @default(true)
+  fees          Boolean @default(true)
+  assignments   Boolean @default(true)
+  deskTickets   Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
 }
 
 model Notification {

@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Megaphone } from "lucide-react";
-import type { Role } from "@prisma/client";
+import { Megaphone, Users } from "lucide-react";
+import type { AnnouncementAudience, Role } from "@prisma/client";
 import { publishAnnouncement } from "@/lib/actions/announcements";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -11,34 +11,28 @@ import { InputField } from "@/components/ui/Input";
 import { SelectField } from "@/components/ui/Select";
 import { TextareaField } from "@/components/ui/Textarea";
 import { useToast } from "@/components/ui/Toast";
-
-const PRINCIPAL_AUDIENCES = [
-  { value: "ALL", label: "Everyone" },
-  { value: "TEACHERS", label: "Teachers" },
-  { value: "STUDENTS", label: "Students" },
-  { value: "PARENTS", label: "Guardians" },
-  { value: "SECTION", label: "A specific class" },
-];
-
-// Teachers only ever address a class they teach; the server enforces this
-// too, but offering the wider options would just produce refusals.
-const TEACHER_AUDIENCES = [{ value: "SECTION", label: "A specific class" }];
+import type { AudienceOption } from "@/lib/queries/audiences";
 
 export function NewAnnouncementButton({
   role,
+  audiences,
   sections,
 }: {
   role: Role;
+  audiences: AudienceOption[];
   sections: { value: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
-  const [audience, setAudience] = useState(role === "TEACHER" ? "SECTION" : "ALL");
+  const [audience, setAudience] = useState<AnnouncementAudience>(
+    audiences[0]?.value ?? "ALL"
+  );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const toast = useToast();
 
-  const audiences = role === "TEACHER" ? TEACHER_AUDIENCES : PRINCIPAL_AUDIENCES;
+  const selected = audiences.find((option) => option.value === audience);
+  const needsSection = selected?.needsSection ?? false;
 
   function handleSubmit(formData: FormData) {
     setFieldErrors({});
@@ -47,7 +41,7 @@ export function NewAnnouncementButton({
       const result = await publishAnnouncement({
         title: String(formData.get("title") ?? ""),
         body: String(formData.get("body") ?? ""),
-        audience: String(formData.get("audience") ?? "ALL") as "ALL",
+        audience,
         sectionId: String(formData.get("sectionId") ?? "") || undefined,
         expiresAt: String(formData.get("expiresAt") ?? "") || undefined,
       });
@@ -63,6 +57,8 @@ export function NewAnnouncementButton({
     });
   }
 
+  if (audiences.length === 0) return null;
+
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)}>
@@ -74,7 +70,7 @@ export function NewAnnouncementButton({
         open={open}
         onClose={() => setOpen(false)}
         title="Publish an announcement"
-        description="Everyone in the audience you choose gets a notification."
+        description="Everyone in the audience you choose is notified straight away."
         size="md"
         footer={
           <>
@@ -92,27 +88,38 @@ export function NewAnnouncementButton({
             name="title"
             label="Title"
             required
-            placeholder="e.g. Parent–teacher meeting on Saturday"
+            placeholder="Mid-term examinations begin 12 October"
             error={fieldErrors.title}
           />
 
           <SelectField
-            name="audience"
-            label="Audience"
+            label="Send to"
             required
             value={audience}
-            onChange={(event) => setAudience(event.target.value)}
-            options={audiences}
+            onChange={(event) => setAudience(event.target.value as AnnouncementAudience)}
+            options={audiences.map((option) => ({ value: option.value, label: option.label }))}
             error={fieldErrors.audience}
           />
 
-          {audience === "SECTION" && (
+          {/* Says who this actually reaches, because "Section" alone doesn't
+              tell a principal whether parents will see it. */}
+          {selected && (
+            <p className="-mt-2 flex items-start gap-1.5 text-xs text-fg-subtle">
+              <Users className="mt-0.5 h-3.5 w-3.5 flex-none" aria-hidden="true" />
+              {selected.description}
+            </p>
+          )}
+
+          {needsSection && (
             <SelectField
               name="sectionId"
               label="Class"
               required
               options={sections}
               placeholder="Choose a class"
+              hint={
+                role === "TEACHER" ? "Only the classes you teach are listed." : undefined
+              }
               error={fieldErrors.sectionId}
             />
           )}
@@ -123,6 +130,7 @@ export function NewAnnouncementButton({
             required
             rows={6}
             placeholder="Write the announcement…"
+            hint="The first line or two is used as the notification preview."
             error={fieldErrors.body}
           />
 

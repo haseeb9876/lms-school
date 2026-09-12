@@ -47,7 +47,7 @@ export async function StudentDashboard({
       getStudentAttendanceSummary(enrollment.studentId),
       getStudentResultCard(enrollment.studentId),
       getStudentInvoices(enrollment.studentId),
-      getRecentAnnouncements("STUDENT", 3),
+      getRecentAnnouncements(userId, "STUDENT", 3),
       prisma.assignment.findMany({
         where: { sectionId: enrollment.sectionId, dueDate: { gte: new Date() } },
         orderBy: { dueDate: "asc" },

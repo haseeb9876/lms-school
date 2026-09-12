@@ -1,5 +1,6 @@
 import type { Role } from "@prisma/client";
 import {
+  Bell,
   BookOpen,
   CalendarDays,
   ClipboardCheck,
@@ -85,6 +86,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Academic Setup", href: "/settings/academic", icon: SlidersHorizontal, roles: ["PRINCIPAL"], matchPrefix: true },
       { label: "School Settings", href: "/principal/settings/branding", icon: Palette, roles: ["PRINCIPAL"], matchPrefix: true },
+      { label: "Notifications", href: "/settings/notifications", icon: Bell, roles: ALL_ROLES, matchPrefix: true },
       { label: "Account Security", href: "/settings/security", icon: ShieldCheck, roles: ALL_ROLES, matchPrefix: true },
     ],
   },

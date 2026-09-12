@@ -44,7 +44,7 @@ export async function ParentDashboard({
       where: { studentId: { in: studentIds }, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
       _sum: { totalAmount: true },
     }),
-    getRecentAnnouncements("PARENT", 3),
+    getRecentAnnouncements(userId, "PARENT", 3),
     prisma.examResult.findMany({
       where: { studentId: { in: studentIds } },
       orderBy: { enteredAt: "desc" },
