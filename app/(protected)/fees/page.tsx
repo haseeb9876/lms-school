@@ -13,6 +13,9 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { StatCard } from "@/components/ui/StatCard";
 import { FilterBar } from "@/components/filters/FilterBar";
 import { InvoiceStatusBadge } from "@/components/fees/InvoiceStatusBadge";
+import { GenerateInvoicesButton, SetFeeButton } from "@/components/fees/FeeSetupDialogs";
+import { getTermOptions } from "@/lib/queries/exams";
+import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Fees" };
 
@@ -33,10 +36,14 @@ export default async function FeesPage({
 
   const isPrincipal = session.role === "PRINCIPAL";
 
-  const [{ rows, total, pageSize }, summary, sections] = await Promise.all([
+  const [{ rows, total, pageSize }, summary, sections, terms, categories] = await Promise.all([
     listInvoices({ session, status, sectionId, query, page }),
     getFeeSummary(session),
     isPrincipal ? getSectionOptions() : Promise.resolve([]),
+    isPrincipal ? getTermOptions() : Promise.resolve([]),
+    isPrincipal
+      ? prisma.feeCategory.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+      : Promise.resolve([]),
   ]);
 
   const collectionRate = summary.billed > 0 ? (summary.collected / summary.billed) * 100 : null;
@@ -94,6 +101,20 @@ export default async function FeesPage({
           isPrincipal
             ? "Invoices, collections and outstanding balances across the school."
             : "Your fee invoices and payment history."
+        }
+        actions={
+          isPrincipal ? (
+            <div className="flex flex-wrap gap-2">
+              <SetFeeButton
+                sections={sections.map((s) => ({ value: s.id, label: s.label }))}
+                categories={categories.map((c) => ({ value: c.id, label: c.name }))}
+              />
+              <GenerateInvoicesButton
+                sections={sections.map((s) => ({ value: s.id, label: s.label }))}
+                terms={terms.map((t) => ({ value: t.id, label: t.name }))}
+              />
+            </div>
+          ) : undefined
         }
       />
 

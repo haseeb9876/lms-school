@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/filters/FilterBar";
+import { NewExamButton } from "@/components/exams/NewExamDialog";
 
 export const metadata: Metadata = { title: "Exams & Results" };
 
@@ -101,6 +102,13 @@ export default async function ExamsPage({
       <PageHeader
         title="Exams & Results"
         description="Examinations across your classes, and how far marking has got."
+        actions={
+          <NewExamButton
+            terms={terms.map((t) => ({ value: t.id, label: t.name }))}
+            subjects={subjects.map((s) => ({ value: s.id, label: s.name }))}
+            sections={sections.map((s) => ({ value: s.id, label: s.label }))}
+          />
+        }
       />
 
       <FilterBar
