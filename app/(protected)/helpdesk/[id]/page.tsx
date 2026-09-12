@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 
 // Deliberately static: a ticket subject can contain whatever a guardian
 // typed, and it would end up in the browser title and any shared link.
-export const metadata: Metadata = { title: "Ticket" };
+export const metadata: Metadata = { title: "Message" };
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth();
@@ -25,7 +25,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        breadcrumbs={[{ label: "Help Desk", href: "/helpdesk" }, { label: ticket.subject }]}
+        breadcrumbs={[{ label: "Private Messages", href: "/helpdesk" }, { label: ticket.subject }]}
         title={ticket.subject}
         description={`Opened by ${ticket.raisedBy.name} · ${formatDateTime(ticket.createdAt)}`}
         actions={

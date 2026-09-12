@@ -77,7 +77,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Fees", href: "/fees", icon: Wallet, roles: ["PRINCIPAL", "STUDENT", "PARENT"], matchPrefix: true },
       { label: "Announcements", href: "/announcements", icon: Megaphone, roles: ALL_ROLES, matchPrefix: true },
-      { label: "Help Desk", href: "/helpdesk", icon: LifeBuoy, roles: ALL_ROLES, matchPrefix: true },
+      { label: "Private Messages", href: "/helpdesk", icon: LifeBuoy, roles: ALL_ROLES, matchPrefix: true },
       { label: "Reports", href: "/reports", icon: FileBarChart, roles: ["PRINCIPAL"], matchPrefix: true },
     ],
   },

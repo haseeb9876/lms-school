@@ -46,7 +46,7 @@ export function NewTicketButton() {
       });
 
       if (result.ok) {
-        toast.success(result.message ?? "Ticket opened.");
+        toast.success(result.message ?? "Message sent.");
         setOpen(false);
         router.push(`/helpdesk/${result.data.id}`);
       } else {
@@ -60,14 +60,14 @@ export function NewTicketButton() {
     <>
       <Button size="sm" onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4" aria-hidden="true" />
-        New ticket
+        New message
       </Button>
 
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Open a help desk ticket"
-        description="Tell the school office what you need help with."
+        title="Message the principal"
+        description="Private — only you and the principal can read this."
         size="md"
         footer={
           <>
@@ -75,7 +75,7 @@ export function NewTicketButton() {
               Cancel
             </Button>
             <Button type="submit" form="new-ticket" loading={isPending}>
-              Open ticket
+              Send message
             </Button>
           </>
         }

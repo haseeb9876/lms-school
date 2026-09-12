@@ -12,7 +12,7 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { NewTicketButton } from "@/components/helpdesk/NewTicketDialog";
 import { TicketPriorityBadge, TicketStatusBadge } from "@/components/helpdesk/TicketBadges";
 
-export const metadata: Metadata = { title: "Help Desk" };
+export const metadata: Metadata = { title: "Private Messages" };
 
 const STATUSES = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"] as const;
 
@@ -33,11 +33,11 @@ export default async function HelpDeskPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Help Desk"
+        title={isPrincipal ? "Private messages" : "Message the principal"}
         description={
           isPrincipal
-            ? "Every ticket raised across the school."
-            : "Your support tickets and their replies."
+            ? "Every message raised across the school. Each one is private between you and the person who sent it."
+            : "A private channel between you and the principal. No other teacher, student or guardian can see these."
         }
         actions={<NewTicketButton />}
       />
@@ -61,12 +61,12 @@ export default async function HelpDeskPage({
       <DataTable
         rows={tickets}
         getRowKey={(row) => row.id}
-        caption="Help desk tickets"
+        caption="Private messages"
         rowHref={(row) => `/helpdesk/${row.id}`}
         columns={[
           {
             key: "subject",
-            header: "Ticket",
+            header: "Message",
             cell: (row) => (
               <div className="min-w-0">
                 <p className="truncate font-medium text-fg">{row.subject}</p>
@@ -100,11 +100,13 @@ export default async function HelpDeskPage({
         empty={
           <EmptyState
             icon={LifeBuoy}
-            title={status ? "No tickets with that status" : "No tickets yet"}
+            title={status ? "No messages with that status" : "No messages yet"}
             description={
               status
                 ? "Try a different status filter."
-                : "Open a ticket and the school office will get back to you here."
+                : isPrincipal
+                  ? "Messages from staff, students and guardians arrive here."
+                  : "Anything you send goes only to the principal, and their reply comes back here."
             }
           />
         }

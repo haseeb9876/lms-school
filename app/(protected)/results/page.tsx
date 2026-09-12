@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { FileBarChart, TrendingUp } from "lucide-react";
+import { FileBarChart, Medal, TrendingUp } from "lucide-react";
 import { requireAuth } from "@/lib/auth/current-user";
 import { assertCanViewStudent } from "@/lib/auth/rbac";
 import { guardPage } from "@/lib/auth/page-guards";
-import { getStudentResultCard } from "@/lib/queries/exams";
+import { getStudentAcademicRecord } from "@/lib/queries/academic-record";
 import { getChildrenForParent, getStudentSection } from "@/lib/queries/timetable";
 import { getBrandingSettings } from "@/lib/branding";
 import { prisma } from "@/lib/db";
 import { readParam, type RawSearchParams } from "@/lib/search-params";
 import { formatPercent } from "@/lib/format";
-import { gradeForPercentage, isPassing } from "@/lib/grading";
+import { isPassing } from "@/lib/grading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -77,13 +77,15 @@ export default async function ResultsPage({
     }
   }
 
-  const results = await getStudentResultCard(studentId);
+  const records = await getStudentAcademicRecord(studentId);
 
-  const obtained = results.reduce((sum, result) => sum + result.marksObtained, 0);
-  const total = results.reduce((sum, result) => sum + result.totalMarks, 0);
-  const overall = total > 0 ? (obtained / total) * 100 : null;
-  const failing = results.filter((result) => !isPassing(result.percent)).length;
-  const best = results.length > 0 ? results.reduce((a, b) => (a.percent > b.percent ? a : b)) : null;
+  // The most recent examination is what the page is really about; the
+  // earlier ones are context for it.
+  const latest = records[0];
+  const subjects = latest?.subjects ?? [];
+  const failing = subjects.filter((subject) => !isPassing(subject.percent)).length;
+  const best =
+    subjects.length > 0 ? subjects.reduce((a, b) => (a.percent > b.percent ? a : b)) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -95,16 +97,21 @@ export default async function ResultsPage({
 
       {childPicker}
 
-      {results.length > 0 && (
+      {latest && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" data-print-hide>
           <StatCard
-            label="Overall"
-            value={overall === null ? "—" : formatPercent(overall, 1)}
+            label={latest.examName}
+            value={formatPercent(latest.percent, 1)}
             icon={TrendingUp}
-            tone={overall !== null && overall >= 60 ? "success" : "warning"}
-            hint={overall === null ? undefined : `Grade ${gradeForPercentage(overall)}`}
+            tone={latest.percent >= 60 ? "success" : "warning"}
+            hint={`Grade ${latest.grade}`}
           />
-          <StatCard label="Subjects assessed" value={results.length} icon={FileBarChart} tone="neutral" />
+          <StatCard
+            label="Position in class"
+            value={latest.position === null ? "—" : `${latest.position} of ${latest.classSize}`}
+            icon={Medal}
+            tone={latest.position !== null && latest.position <= 3 ? "success" : "neutral"}
+          />
           <StatCard
             label="Best subject"
             value={best ? best.subjectName : "—"}
@@ -118,6 +125,7 @@ export default async function ResultsPage({
             icon={FileBarChart}
             tone={failing > 0 ? "danger" : "success"}
             invertTrend
+            hint={`${records.length} exam${records.length === 1 ? "" : "s"} on record`}
           />
         </div>
       )}
@@ -126,7 +134,7 @@ export default async function ResultsPage({
         studentName={studentName}
         sectionLabel={sectionLabel}
         schoolName={branding.schoolName}
-        results={results}
+        records={records}
       />
     </div>
   );
