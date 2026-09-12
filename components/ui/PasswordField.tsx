@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type InputHTMLAttributes } from "react";
-import { Check, Eye, EyeOff, X } from "lucide-react";
+import { Check, Circle, Eye, EyeOff, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { CONTROL_CLASS, FieldShell, describedBy } from "./Field";
 import {
@@ -33,11 +33,11 @@ export interface PasswordFieldProps
  * A password input that says what it wants *before* you get it wrong.
  *
  * The requirements are rendered from the same rules the server enforces, so
- * the list can't drift from what's actually accepted, and they're visible
- * from the moment the field is focused rather than appearing as an error
- * after a failed submit. Someone setting a password for the first time —
- * which, in this app, is every student and guardian on their first
- * sign-in — should not have to guess.
+ * the list can't drift from what's actually accepted, and they are on screen
+ * before anything is typed rather than appearing as an error after a failed
+ * submit. Someone setting a password for the first time — which, in this
+ * app, is every student and guardian on their first sign-in — should not
+ * have to discover the rules by breaking them.
  */
 export function PasswordField({
   label,
@@ -62,9 +62,16 @@ export function PasswordField({
   const check = checkPassword(current);
   const strength = STRENGTH[passwordStrength(current)];
 
-  // The checklist appears once the field has been used, so an untouched form
-  // isn't covered in red crosses before anyone has typed anything.
-  const showList = showRequirements && (touched || current.length > 0);
+  /*
+   * The checklist is visible from the start, not revealed after a failed
+   * attempt. Every student and guardian meets this field on their first
+   * sign-in, having been handed a temporary password, and the whole point
+   * is that they shouldn't have to discover the rules by breaking them.
+   *
+   * Before anything is typed the unmet rules read as plain instructions;
+   * only once the field has been touched do they become misses.
+   */
+  const started = touched || current.length > 0;
 
   return (
     <FieldShell id={inputId} label={label} hint={hint} error={error} required={required}>
@@ -82,7 +89,7 @@ export function PasswordField({
             setTouched(true);
             onFocus?.(event);
           }}
-          aria-describedby={cn(describedBy(inputId, hint, error), showList ? `${inputId}-rules` : "") || undefined}
+          aria-describedby={cn(describedBy(inputId, hint, error), showRequirements ? `${inputId}-rules` : "") || undefined}
           aria-invalid={!!error || undefined}
           className={cn(CONTROL_CLASS, "h-10 pr-10", className)}
           {...props}
@@ -116,26 +123,34 @@ export function PasswordField({
         </div>
       )}
 
-      {showList && (
-        <ul id={`${inputId}-rules`} className="flex flex-col gap-1">
-          {PASSWORD_RULES.map((rule) => {
-            const met = check.satisfied.includes(rule.id);
-            return (
-              <li
-                key={rule.id}
-                className={cn("flex items-center gap-1.5 text-xs", met ? "text-success" : "text-fg-subtle")}
-              >
-                {met ? (
-                  <Check className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
-                ) : (
-                  <X className="h-3.5 w-3.5 flex-none opacity-50" aria-hidden="true" />
-                )}
-                <span>{rule.label}</span>
-                <span className="sr-only">{met ? " — met" : " — not yet met"}</span>
-              </li>
-            );
-          })}
-        </ul>
+      {showRequirements && (
+        <div id={`${inputId}-rules`}>
+          <p className="mb-1.5 text-xs font-medium text-fg-muted">Your password must have:</p>
+          <ul className="flex flex-col gap-1">
+            {PASSWORD_RULES.map((rule) => {
+              const met = check.satisfied.includes(rule.id);
+              return (
+                <li
+                  key={rule.id}
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs",
+                    met ? "text-success" : "text-fg-subtle"
+                  )}
+                >
+                  {met ? (
+                    <Check className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+                  ) : started ? (
+                    <X className="h-3.5 w-3.5 flex-none opacity-60" aria-hidden="true" />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5 flex-none opacity-40" aria-hidden="true" />
+                  )}
+                  <span>{rule.label}</span>
+                  {started && <span className="sr-only">{met ? " — met" : " — not yet met"}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </FieldShell>
   );
