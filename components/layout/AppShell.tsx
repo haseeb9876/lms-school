@@ -9,6 +9,7 @@ import { NotificationWatcher } from "./NotificationWatcher";
 import { BrandMark } from "@/components/branding/BrandMark";
 import type { BrandingSettings } from "@/lib/branding";
 import type { DeviceClass } from "@/lib/auth/session";
+import type { Theme } from "@/components/theme/constants";
 
 /**
  * The single shell used for every role — nav items are filtered from one
@@ -23,6 +24,7 @@ export function AppShell({
   soundEnabled,
   notificationsEnabled,
   device,
+  theme,
   children,
 }: {
   role: Role;
@@ -32,6 +34,7 @@ export function AppShell({
   soundEnabled: boolean;
   notificationsEnabled: boolean;
   device: DeviceClass;
+  theme: Theme;
   children: ReactNode;
 }) {
   const mark = (
@@ -67,7 +70,7 @@ export function AppShell({
           <NavLinks role={role} />
         </div>
 
-        <UserMenu name={userName} role={role} device={device} />
+        <UserMenu name={userName} role={role} device={device} theme={theme} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -75,12 +78,21 @@ export function AppShell({
           data-print-hide
           className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/90 px-4 py-2.5 backdrop-blur-sm"
         >
-          <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
+          {/*
+            min-w-0 on both the link and the label is what makes `truncate`
+            work. A flex child will not shrink below its content width
+            without it, so a long school name pushed the whole header wider
+            than the screen — 55px of horizontal overflow on a 375px phone,
+            which dragged every page sideways and pushed the bell off-screen.
+          */}
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2 md:hidden">
             {mark}
-            <span className="truncate text-sm font-semibold text-fg">{branding.schoolName}</span>
+            <span className="min-w-0 truncate text-sm font-semibold text-fg">
+              {branding.schoolName}
+            </span>
           </Link>
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex flex-none items-center gap-1">
             <NotificationBell unreadCount={unreadCount} />
           </div>
         </header>
@@ -95,7 +107,7 @@ export function AppShell({
         </main>
       </div>
 
-      <MobileTabBar role={role} device={device} />
+      <MobileTabBar role={role} device={device} theme={theme} />
 
       {/* Nothing is polled for at all when alerts are switched off. */}
       {notificationsEnabled && (

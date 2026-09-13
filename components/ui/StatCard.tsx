@@ -78,9 +78,16 @@ export function StatCard({
       </div>
 
       <div className="mt-3.5 flex flex-wrap items-baseline gap-2">
-        {/* The number is the card. Given real weight and tight tracking so a
-            row of these reads as data rather than as boxes with text in. */}
-        <p className="text-[1.75rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-fg">
+        {/*
+          The number is the card: real weight and tight tracking so a row of
+          these reads as data rather than boxes with text in.
+
+          Sized responsively because the card is half a phone screen wide and
+          some of these values are long — "Rs 735,779" at the desktop size
+          was being clipped by the card's own overflow, which is worse than
+          overflowing because it silently shows the wrong figure.
+        */}
+        <p className="min-w-0 text-xl font-bold leading-none tabular-nums tracking-[-0.02em] text-fg sm:text-2xl lg:text-[1.75rem]">
           {value}
         </p>
         {hasTrend && (
