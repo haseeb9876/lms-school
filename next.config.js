@@ -8,6 +8,22 @@ const nextConfig = {
   reactStrictMode: true,
 
   experimental: {
+    serverActions: {
+      /*
+       * Uploads arrive through Server Actions, and the framework default is
+       * 1MB — below a single photograph from any modern phone, which is why
+       * logo and datesheet uploads were failing outright.
+       *
+       * 4MB rather than something larger on purpose: Vercel's serverless
+       * functions reject request bodies over 4.5MB no matter what is
+       * configured here, so a higher number would only move the failure from
+       * our error message to the platform's. Images are downscaled in the
+       * browser before they are sent (lib/image-compress.ts), so real
+       * uploads land far below this — it is headroom, not the target.
+       */
+      bodySizeLimit: "4mb",
+    },
+
     /*
      * Client-side navigation cache.
      *

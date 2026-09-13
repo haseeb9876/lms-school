@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { getBrandingSettings, brandingCssVariables } from "@/lib/branding";
 import { ThemeScript } from "@/components/theme/ThemeScript";
+import { InstallApp } from "@/components/pwa/InstallApp";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -16,7 +17,22 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: branding.schoolName, template: `%s · ${branding.schoolName}` },
     description: `${branding.schoolName} — student information and learning management system.`,
-    icons: branding.faviconUrl ? { icon: branding.faviconUrl } : undefined,
+    icons: {
+      icon: branding.faviconUrl ?? undefined,
+      // iOS ignores the manifest for the home-screen icon and uses this.
+      apple: "/app-icon?size=192",
+    },
+    applicationName: branding.schoolName,
+    appleWebApp: {
+      // Removes Safari's chrome once added to the home screen, which is what
+      // makes it feel like an app rather than a bookmark.
+      capable: true,
+      title: branding.schoolName,
+      statusBarStyle: "default",
+    },
+    // Phone numbers in addresses are already links where they should be;
+    // letting iOS guess turns admission numbers into phone links.
+    formatDetection: { telephone: false },
   };
 }
 
@@ -41,7 +57,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <head>
         <ThemeScript />
       </head>
-      <body className="min-h-dvh bg-surface-sunken text-fg antialiased">{children}</body>
+      <body className="min-h-dvh bg-surface-sunken text-fg antialiased">
+        {children}
+        {/* Registers the service worker and offers installation. Renders
+            nothing at all once installed, or after being dismissed. */}
+        <InstallApp />
+      </body>
     </html>
   );
 }
