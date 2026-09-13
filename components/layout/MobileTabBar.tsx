@@ -9,6 +9,7 @@ import { isNavItemActive, mobilePrimaryItems } from "@/lib/nav";
 import { NavLinks } from "./NavLinks";
 import { SignOutControl } from "./SignOutControl";
 import type { DeviceClass } from "@/lib/auth/session";
+import type { Theme } from "@/components/theme/constants";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { cn } from "@/lib/cn";
 
@@ -21,7 +22,15 @@ import { cn } from "@/lib/cn";
  * and always visible; a hamburger hides every one of them behind an extra
  * tap at the top of the screen, which is the hardest place to reach.
  */
-export function MobileTabBar({ role, device }: { role: Role; device: DeviceClass }) {
+export function MobileTabBar({
+  role,
+  device,
+  theme,
+}: {
+  role: Role;
+  device: DeviceClass;
+  theme: Theme;
+}) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const primary = mobilePrimaryItems(role);
@@ -90,7 +99,7 @@ export function MobileTabBar({ role, device }: { role: Role; device: DeviceClass
             <NavLinks role={role} onNavigate={() => setMoreOpen(false)} />
             <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
               <span className="text-sm text-fg-muted">Appearance</span>
-              <ThemeToggle />
+              <ThemeToggle current={theme} />
             </div>
 
             {/* The sidebar's account menu is desktop-only, so without this

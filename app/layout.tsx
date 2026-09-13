@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
+import { THEME_COOKIE, parseTheme, themeClass } from "@/components/theme/constants";
 import type { CSSProperties, ReactNode } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { getBrandingSettings, brandingCssVariables } from "@/lib/branding";
-import { ThemeScript } from "@/components/theme/ThemeScript";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { SplashScreen } from "@/components/branding/SplashScreen";
 import "./globals.css";
@@ -40,6 +41,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  /*
+   * Lets the page use the full screen on a notched phone, which is what
+   * makes the env(safe-area-inset-*) padding already used by the tab bar,
+   * the install prompt and the launch screen actually resolve to anything.
+   */
+  viewportFit: "cover",
   // The app is used one-handed on phones; locking zoom would fail WCAG and
   // make small type in tables unreadable for anyone who needs to zoom in.
   maximumScale: 5,
@@ -50,14 +57,24 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const branding = await getBrandingSettings();
+  const [branding, cookieStore] = await Promise.all([getBrandingSettings(), cookies()]);
   const brandVars = brandingCssVariables(branding) as CSSProperties;
 
+  /*
+   * The theme class is rendered here rather than applied by a script before
+   * paint. React owns className on <html>, so a class added by a script was
+   * reconciled away during hydration — which meant the theme silently reset
+   * on every load, for light and dark alike. Rendering it server-side means
+   * the markup already matches, so there is nothing to strip and no flash.
+   */
+  const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
+
   return (
-    <html lang="en" className={jakarta.variable} style={brandVars} suppressHydrationWarning>
-      <head>
-        <ThemeScript />
-      </head>
+    <html
+      lang="en"
+      className={[jakarta.variable, themeClass(theme)].filter(Boolean).join(" ")}
+      style={brandVars}
+    >
       <body className="min-h-dvh bg-surface-sunken text-fg antialiased">
         {/* Painted with the first frame and removed once the app is ready.
             In the root layout because that renders once per document load —

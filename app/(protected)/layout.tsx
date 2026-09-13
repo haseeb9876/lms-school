@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { requireAuth } from "@/lib/auth/current-user";
+import { THEME_COOKIE, parseTheme } from "@/components/theme/constants";
 import { getBrandingSettings } from "@/lib/branding";
 import { getShellUser } from "@/lib/queries/shell";
 import { AppShell } from "@/components/layout/AppShell";
@@ -15,10 +17,12 @@ import { BrandingChangedNotice } from "@/components/pwa/BrandingChangedNotice";
 export default async function ProtectedLayout({ children }: { children: ReactNode }) {
   const session = await requireAuth();
 
-  const [branding, user] = await Promise.all([
+  const [branding, user, cookieStore] = await Promise.all([
     getBrandingSettings(),
     getShellUser(session.userId),
+    cookies(),
   ]);
+  const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
 
   return (
     <ToastProvider>
@@ -30,6 +34,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
         soundEnabled={user.soundEnabled}
         notificationsEnabled={user.notificationsEnabled}
         device={session.device}
+        theme={theme}
       >
         {children}
         {/* iPhones cannot refresh a home-screen icon on their own; this says

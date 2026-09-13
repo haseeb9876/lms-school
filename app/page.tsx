@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { THEME_COOKIE, parseTheme } from "@/components/theme/constants";
 import Link from "next/link";
 import { ArrowRight, GraduationCap, LockKeyhole, ShieldCheck } from "lucide-react";
 import { getBrandingSettings } from "@/lib/branding";
@@ -97,7 +98,7 @@ export default async function WelcomePage() {
         <div className={branding.buildingImageUrl ? "text-white" : "text-fg"}>
           <header className="flex items-center justify-between gap-3 p-5">
             <span className="text-sm font-semibold">{branding.schoolName}</span>
-            {!branding.buildingImageUrl && <ThemeToggle />}
+            {!branding.buildingImageUrl && <ThemeToggle current={parseTheme((await cookies()).get(THEME_COOKIE)?.value)} />}
           </header>
 
           <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-8 px-5 pb-16 pt-6 text-center sm:pt-12">

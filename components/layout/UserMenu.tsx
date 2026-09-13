@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { SignOutControl } from "./SignOutControl";
 import type { DeviceClass } from "@/lib/auth/session";
+import type { Theme } from "@/components/theme/constants";
 import { cn } from "@/lib/cn";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -20,10 +21,12 @@ export function UserMenu({
   name,
   role,
   device,
+  theme,
 }: {
   name: string;
   role: string;
   device: DeviceClass;
+  theme: Theme;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -97,7 +100,7 @@ export function UserMenu({
 
           <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2.5">
             <span className="text-xs text-fg-subtle">Appearance</span>
-            <ThemeToggle />
+            <ThemeToggle current={theme} />
           </div>
 
           <div className="border-t border-line p-1">
