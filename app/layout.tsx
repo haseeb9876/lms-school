@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: branding.faviconUrl ?? undefined,
       // iOS ignores the manifest for the home-screen icon and uses this.
-      apple: "/app-icon?size=192",
+      apple: `/app-icon?size=192&v=${branding.version}`,
     },
     applicationName: branding.schoolName,
     appleWebApp: {

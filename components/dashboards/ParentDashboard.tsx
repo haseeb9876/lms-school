@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { ProgressBar, toneForPercent } from "@/components/ui/Progress";
 import { Greeting } from "./Greeting";
+import { QuickActions } from "./QuickActions";
 import { UpcomingDatesheetBanner } from "@/components/datesheets/UpcomingDatesheetBanner";
 
 export async function ParentDashboard({
@@ -82,6 +83,7 @@ export async function ParentDashboard({
         subtitle={`${children.length} child${children.length === 1 ? "" : "ren"} at the school.`}
       />
       <UpcomingDatesheetBanner userId={userId} role="PARENT" />
+      <QuickActions role="PARENT" />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard label="Children" value={children.length} icon={Users} tone="brand" href="/children" />
         <StatCard

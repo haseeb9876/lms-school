@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { Greeting } from "./Greeting";
+import { QuickActions } from "./QuickActions";
 import { UpcomingDatesheetBanner } from "@/components/datesheets/UpcomingDatesheetBanner";
 import { currentDayOfWeek } from "@/components/timetable/TimetableGrid";
 
@@ -84,6 +85,7 @@ export async function StudentDashboard({
         subtitle={`${enrollment.label} · ${todaysPeriods.length} period${todaysPeriods.length === 1 ? "" : "s"} today.`}
       />
       <UpcomingDatesheetBanner userId={userId} role="STUDENT" />
+      <QuickActions role="STUDENT" />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           label="Attendance"

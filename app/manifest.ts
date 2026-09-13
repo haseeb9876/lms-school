@@ -51,13 +51,19 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     categories: ["education", "productivity"],
     lang: "en",
     dir: "ltr",
+    /*
+     * Each icon URL carries the branding version, so uploading a new logo
+     * produces new URLs. Without that, an installed app keeps showing the
+     * icon it fetched on the day it was installed — the manifest would say
+     * the name had changed and the picture would stay the same.
+     */
     icons: [
-      { src: "/app-icon?size=192", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/app-icon?size=512", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: `/app-icon?size=192&v=${branding.version}`, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: `/app-icon?size=512&v=${branding.version}`, sizes: "512x512", type: "image/png", purpose: "any" },
       // Android crops this one to the launcher's shape; it is padded so the
       // logo survives the crop.
       {
-        src: "/app-icon?size=512&maskable=1",
+        src: `/app-icon?size=512&maskable=1&v=${branding.version}`,
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

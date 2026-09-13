@@ -51,6 +51,22 @@ const nextConfig = {
   async headers() {
     return [
       {
+        /*
+         * The manifest carries the school's name and its icon URLs, so an
+         * installed app only picks up a rename or a new logo when it re-reads
+         * this. Cached, it would keep serving the old name for as long as the
+         * cache lived — which on a phone can be a very long time.
+         */
+        source: "/manifest.webmanifest",
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+      },
+      {
+        // Never let a worker script go stale; it is what would update
+        // everything else.
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
+      },
+      {
         source: "/(.*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },

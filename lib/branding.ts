@@ -14,6 +14,15 @@ export interface BrandingSettings {
   phone: string | null;
   email: string | null;
   website: string | null;
+  /**
+   * Changes whenever any branding changes.
+   *
+   * Appended to icon URLs so an installed app actually picks up a new logo.
+   * Android re-reads the manifest and applies a changed name, but it will
+   * happily keep an icon it has already fetched from an unchanged URL — so
+   * the URL has to change for the icon to change.
+   */
+  version: string;
 }
 
 const DEFAULT_BRANDING: BrandingSettings = {
@@ -27,6 +36,7 @@ const DEFAULT_BRANDING: BrandingSettings = {
   phone: null,
   email: null,
   website: null,
+  version: "0",
 };
 
 export const BRANDING_CACHE_TAG = "branding";
@@ -47,10 +57,30 @@ const loadBranding = unstable_cache(
       phone: settings.phone,
       email: settings.email,
       website: settings.website,
+      // Base-36 seconds: short enough to sit in a URL, and it only moves
+      // when something about the branding was actually saved.
+      version: Math.floor(settings.updatedAt.getTime() / 1000).toString(36),
     };
   },
   ["school-branding"],
-  { tags: [BRANDING_CACHE_TAG] }
+  {
+    tags: [BRANDING_CACHE_TAG],
+    /*
+     * A ceiling as well as a tag.
+     *
+     * Saving branding through the app calls revalidateTag, and that is the
+     * fast path — the change appears immediately. But with a tag alone and
+     * no expiry, anything that changes these rows *without* going through
+     * that action leaves the cache wrong permanently: a data import, a
+     * correction applied directly to the database, a restore from backup.
+     * There is no second event to fix it and no amount of restarting helps,
+     * which is exactly the state this was found in.
+     *
+     * Five minutes costs one query per process per five minutes and means
+     * branding can never be more than that far out of date.
+     */
+    revalidate: 300,
+  }
 );
 
 export async function getBrandingSettings(): Promise<BrandingSettings> {
