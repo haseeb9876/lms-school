@@ -504,6 +504,36 @@ model ExamResult {
 // =========================================================================
 
 // =========================================================================
+// Uploaded files
+// =========================================================================
+
+/// An uploaded file held in the database.
+///
+/// Object storage is the textbook answer and it is the wrong default here.
+/// This app is sold to schools that each choose their own server, so every
+/// deployment that has not configured a bucket would otherwise fall back to
+/// the local filesystem — which is read-only on a serverless host, so the
+/// upload throws and the principal sees "something went wrong". That is
+/// exactly what happened in production.
+///
+/// The volumes make it a comfortable trade: a logo is tens of kilobytes
+/// after the browser downscales it, and a datesheet page is a few hundred.
+/// Postgres handles that without noticing, the bytes are backed up and
+/// restored with everything else rather than needing a second backup story,
+/// and uploads work on any host with no configuration whatsoever. A bucket
+/// is still used when one is configured.
+model StoredFile {
+  id          String   @id @default(cuid())
+  /// Driver-independent key, e.g. "branding/k3x9.webp", so the same record
+  /// can be located whichever driver is in use.
+  key         String   @unique
+  contentType String
+  bytes       Bytes
+  size        Int
+  createdAt   DateTime @default(now())
+}
+
+// =========================================================================
 // Examination datesheets
 // =========================================================================
 

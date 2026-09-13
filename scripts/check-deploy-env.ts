@@ -152,18 +152,20 @@ if (!env.DIRECT_URL) {
 // ---------------------------------------------------------------------------
 // File storage — the one that bites hardest on Vercel.
 // ---------------------------------------------------------------------------
-if (!env.BLOB_READ_WRITE_TOKEN) {
-  if (target === "serverless") {
-    report(
-      "blocker",
-      "BLOB_READ_WRITE_TOKEN",
-      "Not set, so uploads fall back to the local filesystem — which on Vercel is read-only, and /tmp is not shared between instances and vanishes. The school logo, the building photo and every datesheet scan will fail to upload. Create a Blob store in the Vercel dashboard and add its token."
-    );
-  } else {
-    report("ok", "BLOB_READ_WRITE_TOKEN", `Not set — uploads go to ${env.UPLOAD_DIR ?? "./uploads"}. Correct for a single server; make sure it is on a disk that survives redeploys and is backed up.`);
-  }
+if (env.BLOB_READ_WRITE_TOKEN) {
+  report("ok", "File storage", "Vercel Blob — uploads go to the bucket.");
+} else if (env.UPLOAD_DIR) {
+  report(
+    "ok",
+    "File storage",
+    `Directory ${env.UPLOAD_DIR}. Chosen explicitly, so make sure it survives redeploys and is backed up — on a serverless host it will not, and uploads will fail.`
+  );
 } else {
-  report("ok", "BLOB_READ_WRITE_TOKEN", "Set — uploads go to Vercel Blob.");
+  report(
+    "ok",
+    "File storage",
+    "Database. Needs no configuration, works on any host, and is backed up with everything else. Move to a bucket by setting BLOB_READ_WRITE_TOKEN if uploads ever grow large."
+  );
 }
 
 // ---------------------------------------------------------------------------
