@@ -1,24 +1,10 @@
-import fs from "node:fs/promises";
 import path from "node:path";
-import { UPLOAD_ROOT, etagFor } from "@/lib/storage";
-
-const CONTENT_TYPES: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".avif": "image/avif",
-  ".svg": "image/svg+xml",
-};
+import { storage, storageDriverName, etagFor, LOCAL_FILE_PREFIX } from "@/lib/storage";
+import { prisma } from "@/lib/db";
 
 /**
  * Serves locally stored *branding* images — the school logo and building
  * photo — and nothing else.
- *
- * Uploads live outside `public/` because Next.js resolves static assets from
- * a manifest built at build time, so a file written at runtime isn't
- * reliably served from there. This route reads them explicitly, which
- * behaves the same on every host.
  *
  * It is intentionally unauthenticated, and listed as public in
  * scripts/check-auth-coverage.ts: these images appear on the welcome and
@@ -26,8 +12,21 @@ const CONTENT_TYPES: Record<string, string> = {
  * leave both pages with broken images. Access is bounded by only ever
  * serving the branding folder — a request for anything else 404s whether or
  * not the file exists.
+ *
+ * It reads through the storage driver rather than straight off the disk, so
+ * the same URL works whether the bytes live in the database (the default),
+ * in a directory, or in a bucket.
  */
 const SERVABLE_PREFIX = "branding/";
+
+const EXTENSION_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".avif": "image/avif",
+  ".svg": "image/svg+xml",
+};
 
 export async function GET(
   request: Request,
@@ -40,24 +39,25 @@ export async function GET(
 
   if (!key.startsWith(SERVABLE_PREFIX)) return notFound;
 
+  // Rejected before any lookup: a traversal sequence has no business here
+  // regardless of which driver would resolve it.
+  if (key.includes("..") || path.isAbsolute(key)) return notFound;
+
+  const reference = `${LOCAL_FILE_PREFIX}${key}`;
+
+  const file = await storage.read(reference);
+  if (!file) return notFound;
+
   /*
-   * Resolve first, then confirm the result is still inside the upload root.
-   * Checking the raw string for ".." would miss encoded and normalised
-   * variants; comparing the resolved path cannot be tricked the same way.
+   * Prefer the type recorded at upload over one guessed from the filename.
+   * The browser downscales to WebP before sending, so a file named .jpeg may
+   * genuinely hold WebP bytes, and serving it as JPEG would break it.
    */
-  const target = path.resolve(UPLOAD_ROOT, key);
-  if (!target.startsWith(UPLOAD_ROOT + path.sep)) return notFound;
+  const contentType =
+    (storageDriverName === "database" ? await storedContentType(key) : null) ??
+    EXTENSION_TYPES[path.extname(key).toLowerCase()];
 
-  const extension = path.extname(target).toLowerCase();
-  const contentType = CONTENT_TYPES[extension];
   if (!contentType) return notFound;
-
-  let file: Buffer;
-  try {
-    file = await fs.readFile(target);
-  } catch {
-    return notFound;
-  }
 
   const etag = etagFor(file);
   if (request.headers.get("if-none-match") === etag) {
@@ -77,4 +77,12 @@ export async function GET(
       "X-Content-Type-Options": "nosniff",
     },
   });
+}
+
+async function storedContentType(key: string): Promise<string | null> {
+  const row = await prisma.storedFile.findUnique({
+    where: { key },
+    select: { contentType: true },
+  });
+  return row?.contentType ?? null;
 }

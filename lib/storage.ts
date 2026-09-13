@@ -64,6 +64,66 @@ class LocalStorage implements StorageDriver {
   }
 }
 
+/**
+ * Files held in the database.
+ *
+ * The default when no bucket is configured, replacing a local-filesystem
+ * fallback that could not work on a serverless host: `process.cwd()` there
+ * is read-only, so the first mkdir threw and every upload failed with an
+ * unexplained error. This works identically on Vercel, on a school's own
+ * server, and on a laptop, with nothing to configure.
+ */
+class DatabaseStorage implements StorageDriver {
+  async save(key: string, file: Buffer, contentType: string): Promise<string> {
+    const safeKey = sanitizeKey(key);
+
+    // Imported lazily so this module stays importable from the Edge runtime,
+    // which has no Prisma.
+    const { prisma } = await import("./db");
+    await prisma.storedFile.create({
+      data: { key: safeKey, contentType, bytes: file, size: file.length },
+    });
+
+    return `${LOCAL_FILE_PREFIX}${safeKey}`;
+  }
+
+  async read(reference: string): Promise<Buffer | null> {
+    if (!reference.startsWith(LOCAL_FILE_PREFIX)) return null;
+    const key = sanitizeKey(reference.slice(LOCAL_FILE_PREFIX.length));
+
+    const { prisma } = await import("./db");
+    const row = await prisma.storedFile.findUnique({
+      where: { key },
+      select: { bytes: true },
+    });
+
+    return row ? Buffer.from(row.bytes) : null;
+  }
+
+  async delete(reference: string): Promise<void> {
+    if (!reference.startsWith(LOCAL_FILE_PREFIX)) return;
+    const key = sanitizeKey(reference.slice(LOCAL_FILE_PREFIX.length));
+
+    const { prisma } = await import("./db");
+    // deleteMany rather than delete: removing a file that is already gone is
+    // success, not an error to propagate into an upload.
+    await prisma.storedFile.deleteMany({ where: { key } });
+  }
+
+  /** The content type, needed by the route that serves these. */
+  async contentType(reference: string): Promise<string | null> {
+    if (!reference.startsWith(LOCAL_FILE_PREFIX)) return null;
+    const key = sanitizeKey(reference.slice(LOCAL_FILE_PREFIX.length));
+
+    const { prisma } = await import("./db");
+    const row = await prisma.storedFile.findUnique({
+      where: { key },
+      select: { contentType: true },
+    });
+    return row?.contentType ?? null;
+  }
+}
+
 class VercelBlobStorage implements StorageDriver {
   async save(key: string, file: Buffer, contentType: string): Promise<string> {
     // Imported lazily so a self-hosted deployment never loads the Vercel SDK.
@@ -124,16 +184,31 @@ function sanitizeKey(key: string): string {
 }
 
 /**
- * Vercel Blob when it's configured, the local filesystem otherwise.
+ * Which driver handles uploads, in order of explicitness.
  *
- * This previously used Vercel Blob unconditionally, so on any deployment
- * without BLOB_READ_WRITE_TOKEN — including local development — every logo
- * upload failed. The school running this on its own server is the normal
- * case, not the exception, so that case now works out of the box.
+ * A bucket when one is configured, because that is the right answer at
+ * scale. A directory when an operator has deliberately named one, for a
+ * school that wants files on its own disk. Otherwise the database — which
+ * needs no configuration and cannot fail because of a read-only filesystem
+ * or an environment variable that never reached the running app.
+ *
+ * The previous default was the local filesystem, and it is why uploads
+ * failed in production with an unexplained error: a serverless host's
+ * working directory is read-only, so the very first write threw.
  */
 export const storage: StorageDriver = process.env.BLOB_READ_WRITE_TOKEN
   ? new VercelBlobStorage()
-  : new LocalStorage();
+  : process.env.UPLOAD_DIR
+    ? new LocalStorage()
+    : new DatabaseStorage();
+
+/** Which driver is active, for diagnostics and the environment check. */
+export const storageDriverName: "vercel-blob" | "filesystem" | "database" =
+  process.env.BLOB_READ_WRITE_TOKEN
+    ? "vercel-blob"
+    : process.env.UPLOAD_DIR
+      ? "filesystem"
+      : "database";
 
 
 /** A collision-free filename that keeps the original extension. */
