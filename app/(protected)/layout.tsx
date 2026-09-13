@@ -4,6 +4,7 @@ import { getBrandingSettings } from "@/lib/branding";
 import { getShellUser } from "@/lib/queries/shell";
 import { AppShell } from "@/components/layout/AppShell";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SplashScreen } from "@/components/branding/SplashScreen";
 
 /**
  * This layout runs before every page in the app, so its cost is charged to
@@ -21,6 +22,9 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
 
   return (
     <ToastProvider>
+      {/* Painted with the first frame and removed once the app is ready.
+          Once per session, so it covers a launch and not every click. */}
+      <SplashScreen />
       <AppShell
         role={session.role}
         userName={user.name}

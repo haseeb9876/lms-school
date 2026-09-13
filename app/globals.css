@@ -324,3 +324,155 @@
     break-after: page;
   }
 }
+
+/* =========================================================================
+   Launch screen
+   -------------------------------------------------------------------------
+   Covers the app while it starts, carrying the school's own logo. Written
+   in plain CSS rather than utility classes because it has to paint before
+   React has done anything, and because the animation is a composed sequence
+   rather than a single effect.
+
+   Everything here animates transform and opacity only — the two properties
+   a browser can move without re-laying-out the page — so the launch screen
+   never competes with the work of actually starting the app.
+   ========================================================================= */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  background: var(--color-surface-sunken);
+  /* Clears the notch on a phone running this installed. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+
+  /*
+   * CSS dismisses this, not JavaScript.
+   *
+   * The first version relied on a script to remove it, and the script could
+   * run before React had inserted the element — it found nothing, gave up,
+   * and the splash stayed on screen covering the entire app. A full-screen
+   * overlay whose only exit is a script that might not fire is a trap, so
+   * the exit is now unconditional: it fades out on a timer that is part of
+   * the element's own style and cannot fail to start.
+   *
+   * The script still runs, and still matters — it dismisses this early once
+   * the app is ready, and removes it instantly on a navigation within the
+   * same session. But nothing depends on it any more.
+   */
+  animation:
+    splash-in 0.24s ease-out both,
+    splash-out 0.45s 2.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* The script asking it to leave now, rather than waiting out the timer. */
+.splash[data-leaving="true"] {
+  animation: splash-out 0.42s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.splash-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* A slow rise-and-settle rather than a bounce: this sits under a school
+     crest, and a playful spring would read as the wrong kind of product. */
+  animation: splash-mark 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* A single arc sweeping around the logo. One arc, not a full ring, so it
+   reads as motion rather than as a loading spinner demanding patience. */
+.splash-ring {
+  position: absolute;
+  inset: -0.75rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  opacity: 0.85;
+  animation: splash-spin 1.15s linear infinite;
+}
+
+.splash-logo {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.25rem;
+  object-fit: cover;
+  box-shadow: var(--shadow-raised);
+}
+
+.splash-monogram {
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.splash-name {
+  margin: 0;
+  max-width: 20rem;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-fg-muted);
+  animation: splash-name 0.5s 0.14s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes splash-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes splash-out {
+  from { opacity: 1; transform: scale(1); }
+  /* Lifts away slightly as it fades, so the app underneath feels like it is
+     arriving rather than the cover simply switching off. `pointer-events`
+     goes first: the moment it starts fading it must stop swallowing taps,
+     even though it is still painted. */
+  to   { opacity: 0; transform: scale(1.04); visibility: hidden; pointer-events: none; }
+}
+
+@keyframes splash-mark {
+  from { opacity: 0; transform: translateY(10px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes splash-name {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splash-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Someone who has asked for less motion still gets the branded screen —
+   they just get it still, and it still leaves on its own. */
+@media (prefers-reduced-motion: reduce) {
+  .splash,
+  .splash-mark,
+  .splash-logo {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.25rem;
+  object-fit: cover;
+  box-shadow: var(--shadow-raised);
+}
+
+.splash-monogram {
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.splash-name { animation: none; }
+  .splash-ring { animation: none; opacity: 0.25; }
+  .splash[data-leaving="true"] { animation: splash-out 0.2s linear forwards; }
+}

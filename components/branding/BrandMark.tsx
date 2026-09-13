@@ -56,6 +56,9 @@ export function BrandMark({
         src={logoUrl}
         alt=""
         aria-hidden="true"
+        // Lets the launch screen reuse the logo the page has already
+        // fetched, instead of triggering a second request for it.
+        data-brand-mark=""
         onError={() => setFailed(true)}
         className={cn("flex-none object-cover", box, className)}
       />

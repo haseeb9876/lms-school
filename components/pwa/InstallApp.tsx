@@ -49,11 +49,22 @@ export function InstallApp() {
 
   useEffect(() => {
     /*
-     * Registered from the client after load rather than in the document, so
-     * it never competes with the first render for bandwidth on a slow
-     * connection. Failure is non-fatal — the app works without it; only
-     * installability and the offline page are lost.
+     * Production only.
+     *
+     * The worker caches /_next/static cache-first, which is correct in
+     * production where those URLs are content-hashed and never change. In
+     * development the dev server reuses the same chunk URLs after a rebuild,
+     * so the cache serves the *previous* build's JavaScript and CSS against
+     * the current HTML — which presents as edits that mysteriously do not
+     * appear, and cost me an hour chasing a stylesheet that was correct on
+     * the server and stale in the browser.
+     *
+     * Registered after load rather than in the document, so it never
+     * competes with the first render for bandwidth. Failure is non-fatal —
+     * only installability and the offline page are lost.
      */
+    if (process.env.NODE_ENV !== "production") return;
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
     }
