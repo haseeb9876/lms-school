@@ -87,6 +87,12 @@ export async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  /*
+   * Layouts are not told which path is being rendered, and the root layout
+   * needs to know: it renders the launch screen, which belongs on the app
+   * and not over the public welcome page.
+   */
+  requestHeaders.set("x-pathname", pathname);
   requestHeaders.set("Content-Security-Policy", csp);
 
   function next(): NextResponse {

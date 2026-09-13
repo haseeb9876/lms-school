@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { getBrandingSettings, brandingCssVariables } from "@/lib/branding";
 import { ThemeScript } from "@/components/theme/ThemeScript";
 import { InstallApp } from "@/components/pwa/InstallApp";
+import { SplashScreen } from "@/components/branding/SplashScreen";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -58,6 +59,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <ThemeScript />
       </head>
       <body className="min-h-dvh bg-surface-sunken text-fg antialiased">
+        {/* Painted with the first frame and removed once the app is ready.
+            In the root layout because that renders once per document load —
+            a lower layout is re-rendered on client navigation, where an
+            inline script would never execute. */}
+        <SplashScreen />
         {children}
         {/* Registers the service worker and offers installation. Renders
             nothing at all once installed, or after being dismissed. */}
