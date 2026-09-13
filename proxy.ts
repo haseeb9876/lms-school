@@ -16,7 +16,12 @@ import { roleMayAccess } from "@/lib/route-access";
  */
 // "/" is the public welcome screen; the dashboard lives at /dashboard.
 const PUBLIC_PAGE_PATHS = ["/login", "/forgot-password", "/reset-password", "/unauthorized"];
-const PUBLIC_EXACT_PATHS = ["/"];
+/*
+ * Fetched by the browser to decide whether the site is installable, and by
+ * the OS when drawing the icon — often with no cookies at all, and always
+ * before anyone has signed in. None of it is school data.
+ */
+const PUBLIC_EXACT_PATHS = ["/", "/manifest.webmanifest", "/app-icon", "/sw.js", "/offline.html"];
 const PUBLIC_API_PATHS = [
   "/api/auth/login",
   "/api/auth/2fa/verify",
@@ -58,6 +63,13 @@ function buildCsp(nonce: string, isProd: boolean): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isProd ? "" : " 'unsafe-eval'"}`,
     "style-src 'self' 'unsafe-inline'",
+    /*
+     * The service worker. Without this, worker-src falls back to script-src —
+     * where 'strict-dynamic' makes 'self' inert — and registration is
+     * blocked, taking installability with it.
+     */
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
     "font-src 'self' data:",
     "connect-src 'self' https://*.public.blob.vercel-storage.com",

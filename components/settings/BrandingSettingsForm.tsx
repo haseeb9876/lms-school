@@ -9,6 +9,7 @@ import { InputField } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
+import { compressImage, formatBytes } from "@/lib/image-compress";
 import { isValidHexColor } from "@/lib/color";
 import { cn } from "@/lib/cn";
 
@@ -200,16 +201,37 @@ function ImageUploader({
   const [missing, setMissing] = useState(false);
 
   async function onChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const chosen = event.target.files?.[0];
+    if (!chosen) return;
 
     setBusy(true);
     // Shown straight away; replaced by the stored URL once the upload lands.
-    const localPreview = URL.createObjectURL(file);
+    const localPreview = URL.createObjectURL(chosen);
     setUrl(localPreview);
     setMissing(false);
 
     try {
+      /*
+       * Shrunk here rather than sent as-is. A photograph straight off a phone
+       * is several megabytes, which exceeds what a Server Action will accept
+       * and is wasted on an image that will be displayed a few hundred pixels
+       * wide — on a mobile connection, that is the difference between an
+       * upload that works and one that fails after a long wait.
+       *
+       * The logo keeps its transparency; a photograph does not need it.
+       */
+      const { file, changed, originalBytes, bytes } = await compressImage(chosen, {
+        maxEdge: kind === "logo" ? 512 : 2000,
+        maxBytes: 1_500_000,
+        preserveAlpha: kind === "logo",
+      });
+
+      if (changed) {
+        console.info(
+          `[upload] ${formatBytes(originalBytes)} → ${formatBytes(bytes)} before sending`
+        );
+      }
+
       const formData = new FormData();
       formData.append("kind", kind);
       formData.append("file", file);

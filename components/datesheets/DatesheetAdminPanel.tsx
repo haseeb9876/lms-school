@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmAction } from "@/components/ui/ConfirmAction";
 import { InputField } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
+import { compressImage } from "@/lib/image-compress";
 
 interface EntryDraft {
   subjectName: string;
@@ -67,12 +68,24 @@ export function DatesheetAdminPanel({
     setEntries((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
   }
 
-  function upload(file: File) {
-    const formData = new FormData();
-    formData.set("datesheetId", datesheetId);
-    formData.set("file", file);
-
+  function upload(chosen: File) {
     startUpload(async () => {
+      /*
+       * A photograph of a datesheet on a wall is the largest thing anyone
+       * uploads here — several megabytes, well past what a Server Action
+       * accepts. Resized to 2000px on the long edge it lands a few hundred
+       * kilobytes and stays completely legible when a parent zooms in, which
+       * is the only thing this image has to do.
+       */
+      const { file } = await compressImage(chosen, {
+        maxEdge: 2000,
+        maxBytes: 1_500_000,
+      });
+
+      const formData = new FormData();
+      formData.set("datesheetId", datesheetId);
+      formData.set("file", file);
+
       const result = await addDatesheetPage(formData);
       if (result.ok) {
         toast.success(result.message ?? "Page added.");

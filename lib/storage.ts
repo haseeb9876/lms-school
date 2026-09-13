@@ -148,14 +148,20 @@ export function etagFor(buffer: Buffer): string {
   return `"${createHash("sha1").update(buffer).digest("hex").slice(0, 32)}"`;
 }
 
+/**
+ * Server-side ceilings, deliberately below the 4MB Server Action body limit
+ * so an oversized file produces our message rather than the framework's
+ * generic one. The browser downscales before sending, so these are a
+ * backstop against a direct POST, not the size anything actually arrives at.
+ */
 export const UPLOAD_LIMITS = {
   logo: {
-    maxBytes: 2 * 1024 * 1024,
+    maxBytes: 3 * 1024 * 1024,
     allowedMimeTypes: ["image/png", "image/jpeg", "image/svg+xml", "image/webp"],
   },
-  /** Photographs of a building, so larger and no SVG. */
+  /** Photographs of a building, so no SVG. */
   photo: {
-    maxBytes: 8 * 1024 * 1024,
+    maxBytes: 3 * 1024 * 1024,
     allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/avif"],
   },
   attachment: { maxBytes: 10 * 1024 * 1024, allowedMimeTypes: [] as string[] },
@@ -166,7 +172,7 @@ export const UPLOAD_LIMITS = {
    * script upload.
    */
   datesheet: {
-    maxBytes: 12 * 1024 * 1024,
+    maxBytes: 3 * 1024 * 1024,
     allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/avif"],
   },
 } as const;
