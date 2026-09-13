@@ -21,9 +21,20 @@ import { readableTextColor } from "@/lib/color";
  * slower to read and heavier to use, not more premium — in-app navigation
  * keeps its skeletons, which show the shape of what is arriving.
  *
- * Deliberately *not* shown on the public welcome screen: that page is its
+ * Deliberately *not* shown on the public screens: the welcome page is its
  * own designed first impression and does not want a cover over it.
+ *
+ * It lives in the *root* layout, which is the only place it can work. A
+ * layout below the root is re-rendered by React on a client-side navigation,
+ * and a <script> rendered by React in the browser is inserted through DOM
+ * APIs, which never execute it — React warns about exactly this. Worse than
+ * the warning, it meant signing in produced a splash that no script would
+ * dismiss. The root layout renders once per document load, which is precisely
+ * what "app launch" means.
  */
+
+/** Paths that are their own first impression and should never be covered. */
+const UNCOVERED = ["/", "/login", "/forgot-password", "/reset-password", "/unauthorized"];
 /*
  * Dismisses the splash early. The CSS already guarantees it leaves on its
  * own, so every lookup here is allowed to fail harmlessly — which matters,
@@ -55,7 +66,12 @@ else window.addEventListener('load',ready,{once:true});
 })();`;
 
 export async function SplashScreen() {
-  const [branding, headerList] = await Promise.all([getBrandingSettings(), headers()]);
+  const headerList = await headers();
+  const pathname = headerList.get("x-pathname") ?? "/";
+
+  if (UNCOVERED.includes(pathname)) return null;
+
+  const branding = await getBrandingSettings();
   const nonce = headerList.get("x-nonce") ?? undefined;
 
   const initial = branding.schoolName.trim().charAt(0).toUpperCase() || "S";
