@@ -31,6 +31,7 @@ export async function GET(request: Request): Promise<Response> {
   const requested = Number(params.get("size") ?? 512);
   const size = ALLOWED_SIZES.includes(requested) ? requested : 512;
   const maskable = params.get("maskable") === "1";
+  const versioned = params.has("v");
 
   const branding = await getBrandingSettings();
   const background = branding.primaryColor;
@@ -99,12 +100,14 @@ export async function GET(request: Request): Promise<Response> {
       height: size,
       headers: {
         /*
-         * Short cache with revalidation rather than immutable: this URL's
-         * content changes the moment a new logo is uploaded, and an icon
-         * frozen on every installed phone would be the opposite of what this
-         * route exists for. A day is long enough to be cheap.
+         * Safe to cache hard *because* the URL carries the branding version:
+         * a new logo produces a different URL, so nothing has to expire for
+         * the change to appear. A request without a version is treated as
+         * unversioned and revalidated, since it could be anyone's bookmark.
          */
-        "Cache-Control": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800",
+        "Cache-Control": versioned
+          ? "public, max-age=31536000, immutable"
+          : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
       },
     }
   );

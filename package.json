@@ -23,10 +23,11 @@
     "sessions": "tsx scripts/session-check.ts",
     "recovery": "tsx scripts/recovery-check.ts",
     "datesheets": "tsx scripts/datesheet-check.ts",
-    "verify": "npm run typecheck && npm test && npm run check:auth && npm run rbac && npm run smoke && npm run sessions && npm run recovery && npm run datesheets && npm run storage",
+    "verify": "npm run typecheck && npm test && npm run check:auth && npm run rbac && npm run smoke && npm run sessions && npm run recovery && npm run datesheets && npm run storage && npm run branding",
     "check:env": "tsx scripts/check-deploy-env.ts",
     "vercel-build": "node scripts/vercel-build.mjs",
-    "storage": "tsx scripts/storage-check.ts"
+    "storage": "tsx scripts/storage-check.ts",
+    "branding": "tsx scripts/branding-check.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

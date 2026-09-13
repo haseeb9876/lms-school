@@ -5,6 +5,7 @@ import { getShellUser } from "@/lib/queries/shell";
 import { AppShell } from "@/components/layout/AppShell";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SplashScreen } from "@/components/branding/SplashScreen";
+import { BrandingChangedNotice } from "@/components/pwa/BrandingChangedNotice";
 
 /**
  * This layout runs before every page in the app, so its cost is charged to
@@ -35,6 +36,9 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
         device={session.device}
       >
         {children}
+        {/* iPhones cannot refresh a home-screen icon on their own; this says
+            so once, and only when the branding actually changed. */}
+        <BrandingChangedNotice version={branding.version} />
       </AppShell>
     </ToastProvider>
   );
